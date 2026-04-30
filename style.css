@@ -420,17 +420,17 @@ header {
 }
 
 .block-content.filled {
-    background-color: #161616; /* Etwas heller, wenn Daten drin sind */
-    border-left: 4px solid #fff;
-    justify-content: space-between; /* Verteilt das neue Grid optimal */
+    /* Absolut keine optischen oder dimensionellen Änderungen. Bleibt #111 */
+    justify-content: space-between; 
 }
 
 /* --- Das neue Grid-Design für die Daten im Block --- */
 .block-data-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* 4 Spalten nebeneinander */
+    /* Spalten dynamisch aufteilen: Datum bekommt minimal mehr Platz */
+    grid-template-columns: 1fr 1.2fr 1fr 1fr; 
     width: 100%;
-    gap: 10px;
+    gap: 5px; /* Abstand leicht verringert, um den Elementen mehr Raum zu geben */
     text-align: center;
 }
 
@@ -439,6 +439,7 @@ header {
     flex-direction: column;
     gap: 6px;
     justify-content: center;
+    overflow: hidden; /* Verhindert das Ausbrechen von Text */
 }
 
 .data-label {
@@ -449,9 +450,10 @@ header {
 }
 
 .data-value {
-    font-size: 0.95rem;
+    font-size: 0.9rem; /* Minimal kleiner für perfekte Passform */
     color: #fff;
     font-weight: 600;
+    white-space: nowrap; /* Zwingt den Text unerbittlich auf exakt eine Zeile */
 }
 /* Bottom Actions */
 .bottom-actions {
