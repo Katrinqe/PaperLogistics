@@ -386,35 +386,73 @@ header {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 15px; /* Mehr Abstand zwischen den Blöcken */
     overflow-y: auto;
     margin-bottom: 20px;
 }
 
 .block-row {
     display: flex;
-    align-items: center;
-    gap: 15px;
+    align-items: stretch; /* Sorgt dafür, dass der Plus-Button genauso hoch wird wie der Block */
+    gap: 12px;
+}
+
+/* Spezifisches Styling für das Plus neben den Blöcken */
+.plus-btn.block-plus {
+    width: 45px;
+    height: auto; 
+    min-height: 85px; /* Macht den Button klobig */
+    border-radius: 12px;
 }
 
 .block-content {
     background-color: #111;
     flex-grow: 1;
     border-radius: 12px;
-    min-height: 50px;
-    padding: 10px 15px;
+    min-height: 85px; /* Aus Zeilen werden echte Blöcke */
+    padding: 15px;
     display: flex;
-    align-items: center;
-    color: #666;
-    font-size: 0.85rem;
-    line-height: 1.4;
+    align-items: center; 
+    justify-content: center; /* Hält "Empty Block" mittig */
+    color: #555;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
 }
 
 .block-content.filled {
-    color: #ccc;
-    border-left: 3px solid #fff; /* Kleines Highlight, dass er gefüllt ist */
+    background-color: #161616; /* Etwas heller, wenn Daten drin sind */
+    border-left: 4px solid #fff;
+    justify-content: space-between; /* Verteilt das neue Grid optimal */
 }
 
+/* --- Das neue Grid-Design für die Daten im Block --- */
+.block-data-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 Spalten nebeneinander */
+    width: 100%;
+    gap: 10px;
+    text-align: center;
+}
+
+.data-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: center;
+}
+
+.data-label {
+    font-size: 0.7rem;
+    color: #777;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.data-value {
+    font-size: 0.95rem;
+    color: #fff;
+    font-weight: 600;
+}
 /* Bottom Actions */
 .bottom-actions {
     display: flex;
