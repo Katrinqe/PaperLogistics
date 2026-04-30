@@ -56,8 +56,10 @@ header {
 }
 
 .top-logo {
-    height: 80px; /* Logo ist jetzt 20% größer */
-    width: auto;
+    height: 60px !important;
+    width: auto !important;
+    max-height: none; /* Verhindert, dass Flexbox das Bild staucht */
+    display: block;
 }
 
 .header-info {
