@@ -18,8 +18,10 @@
 
     <!-- Main App Content -->
     <main id="app-content" class="hidden">
-        <!-- Header -->
-        <header>
+        
+        <!-- === SCREEN 1: HOME === -->
+        <div id="home-screen" class="screen">
+            <header>
            
             <div class="header-info">
                 <span id="greeting">Good morning</span>
@@ -62,7 +64,7 @@
 
         <!-- Action Grid (Icons only) -->
         <nav class="action-grid">
-            <button aria-label="Neuen QR erstellen" class="icon-btn">
+           <button aria-label="Neuen QR erstellen" class="icon-btn" id="btn-new-qr">
                 <i class="fa-solid fa-qrcode"></i><span class="badge">+</span>
             </button>
             <button aria-label="Scannen" class="icon-btn">
@@ -80,7 +82,64 @@
             <button aria-label="Log Out" class="icon-btn logout">
                 <i class="fa-solid fa-right-from-bracket"></i>
             </button>
-        </nav>
+        </nav> <!-- HIER BLEIBT DEIN KOMPLETTER BISHERIGER CODE (Header, Middle-Layout, Action-Grid) -->
+        </div>
+
+        <!-- === SCREEN 2: NEW CONTAINER === -->
+        <div id="new-container-screen" class="screen hidden">
+            <div class="container-header">
+                <input type="text" id="container-name-input" value="Container_001">
+                <button class="plus-btn global-plus" onclick="openModal('all')">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+            <div class="blocks-list" id="blocks-list">
+                <!-- JS generiert hier die 6 Blöcke -->
+            </div>
+
+            <div class="bottom-actions">
+                <button class="btn-back" onclick="closeNewContainerScreen()">Back</button>
+                <button class="btn-create">Create</button>
+            </div>
+        </div>
+
+        <!-- === MODAL (Pop-Up) === -->
+        <div id="data-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3 id="modal-title">Define Paper</h3>
+                
+                <label>Type:</label>
+                <select id="modal-type">
+                    <option value="A">Type A</option>
+                    <option value="B">Type B</option>
+                    <option value="C">Type C</option>
+                </select>
+                
+                <label>Date:</label>
+                <input type="date" id="modal-date">
+                
+                <label>Price:</label>
+                <select id="modal-price">
+                    <option value="Type 1">Type 1</option>
+                    <option value="Type 2">Type 2</option>
+                    <option value="Type 3">Type 3</option>
+                </select>
+                
+                <label>Quality:</label>
+                <select id="modal-quality">
+                    <option value="Good">Good</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Cheap">Cheap</option>
+                </select>
+                
+                <div class="modal-actions">
+                    <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                    <button class="btn-confirm" onclick="confirmModal()">Confirm</button>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <script src="script.js"></script>
