@@ -107,4 +107,96 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     renderCalendar();
+
+    // --- New Container Screen Logic ---
+    const homeScreen = document.getElementById('home-screen');
+    const newContainerScreen = document.getElementById('new-container-screen');
+    const modal = document.getElementById('data-modal');
+    const blocksList = document.getElementById('blocks-list');
+    
+    let containerCounter = 1; // Zählt die Container für den automatischen Namen hoch
+    let currentModalTarget = null; // Speichert, ob 'all' oder ein spezifischer Block (0-5) bearbeitet wird
+
+    // Öffnet den neuen Screen
+    document.getElementById('btn-new-qr').addEventListener('click', () => {
+        homeScreen.classList.add('hidden');
+        newContainerScreen.classList.remove('hidden');
+        
+        // Generiere Name, z.B. Container_001
+        document.getElementById('container-name-input').value = `Container_${String(containerCounter).padStart(3, '0')}`;
+        
+        // Die 6 Blöcke generieren (falls noch nicht geschehen)
+        if (blocksList.children.length === 0) {
+            for (let i = 0; i < 6; i++) {
+                const blockRow = document.createElement('div');
+                blockRow.className = 'block-row';
+                blockRow.innerHTML = `
+                    <button class="plus-btn block-plus" onclick="openModal(${i})">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <div class="block-content" id="block-${i}">Empty Block</div>
+                `;
+                blocksList.appendChild(blockRow);
+            }
+        } else {
+            // Wenn man zurück und wieder rein geht, Blöcke leeren
+            for (let i = 0; i < 6; i++) {
+                const block = document.getElementById(`block-${i}`);
+                block.innerHTML = 'Empty Block';
+                block.classList.remove('filled');
+            }
+        }
+        
+        // Setze das Datum im Modal auf heute als Standard
+        document.getElementById('modal-date').valueAsDate = new Date();
+    });
+
+    // Zurück zum Home Screen
+    window.closeNewContainerScreen = function() {
+        newContainerScreen.classList.add('hidden');
+        homeScreen.classList.remove('hidden');
+    };
+
+    // Modal öffnen (target ist 'all' oder eine Zahl 0-5)
+    window.openModal = function(target) {
+        currentModalTarget = target;
+        modal.classList.remove('hidden');
+        const title = document.getElementById('modal-title');
+        title.textContent = target === 'all' ? 'Define All 6 Blocks' : `Define Block ${target + 1}`;
+    };
+
+    // Modal schließen
+    window.closeModal = function() {
+        modal.classList.add('hidden');
+    };
+
+    // Daten aus dem Modal bestätigen und in die UI schreiben
+    window.confirmModal = function() {
+        const type = document.getElementById('modal-type').value;
+        const date = document.getElementById('modal-date').value;
+        const price = document.getElementById('modal-price').value;
+        const quality = document.getElementById('modal-quality').value;
+
+        // Die formatierte Ausgabe für den Block
+        const contentString = `<b>Type:</b> ${type} <br> <b>Date:</b> ${date} <br> <b>Price:</b> ${price} | <b>Quality:</b> ${quality}`;
+
+        if (currentModalTarget === 'all') {
+            // Alle 6 Blöcke füllen
+            for (let i = 0; i < 6; i++) {
+                updateBlock(i, contentString);
+            }
+        } else {
+            // Nur den einen spezifischen Block füllen
+            updateBlock(currentModalTarget, contentString);
+        }
+
+        closeModal();
+    };
+
+    // Hilfsfunktion zum Updaten des HTML eines Blocks
+    function updateBlock(index, htmlString) {
+        const block = document.getElementById(`block-${index}`);
+        block.innerHTML = htmlString;
+        block.classList.add('filled');
+    }
 });
