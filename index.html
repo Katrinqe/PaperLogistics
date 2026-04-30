@@ -35,17 +35,32 @@
             </div>
         </header>
 
-        <!-- Dashboard / Graph -->
-        <section class="dashboard">
-            <div class="graph-toggles">
-                <button class="active">Day</button>
-                <button>Week</button>
-                <button>Month</button>
-            </div>
-            <div class="graph-area">
-                <p>No data</p>
-            </div>
-        </section>
+   <!-- Middle Layout (Calendar & Graph) -->
+        <div class="middle-layout">
+            <!-- Calendar -->
+            <section class="calendar-container">
+                <div class="calendar-header" id="calendar-month-year"></div>
+                <div class="calendar-weekdays">
+                    <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                </div>
+                <div class="calendar-grid" id="calendar-days">
+                    <!-- JS füllt die Tage ein -->
+                </div>
+            </section>
+
+            <!-- Dashboard / Graph -->
+            <section class="dashboard">
+                <div class="graph-area">
+                    <div class="inline-toggles" id="graph-toggles">
+                        <div class="toggle-slider" id="toggle-slider"></div>
+                        <button class="active" onclick="moveSlider(0, this)">Day</button>
+                        <button onclick="moveSlider(1, this)">Week</button>
+                        <button onclick="moveSlider(2, this)">Month</button>
+                    </div>
+                    <p class="no-data-text">No data</p>
+                </div>
+            </section>
+        </div>
 
         <!-- Action Grid (Icons only) -->
         <nav class="action-grid">
