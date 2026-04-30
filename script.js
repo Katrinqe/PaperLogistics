@@ -157,14 +157,45 @@ document.addEventListener("DOMContentLoaded", () => {
         homeScreen.classList.remove('hidden');
     };
 
-    // Modal öffnen (target ist 'all' oder eine Zahl 0-5)
+// Modal öffnen und bei Bedarf mit bestehenden Daten füllen
     window.openModal = function(target) {
         currentModalTarget = target;
         modal.classList.remove('hidden');
         const title = document.getElementById('modal-title');
         title.textContent = target === 'all' ? 'Define All 6 Blocks' : `Define Block ${target + 1}`;
-    };
 
+        // Logik zum Vorausfüllen der Daten
+        if (target !== 'all') {
+            const block = document.getElementById(`block-${target}`);
+            
+            // Prüfen, ob der Block bereits Daten enthält
+            if (block.classList.contains('filled')) {
+                // Liest alle 4 Werte aus dem HTML-Grid aus
+                const dataValues = block.querySelectorAll('.data-value');
+                if (dataValues.length === 4) {
+                    document.getElementById('modal-type').value = dataValues[0].textContent;
+
+                    // Datum rückwärts von DD.MM.YY nach YYYY-MM-DD konvertieren
+                    const shortDate = dataValues[1].textContent;
+                    const dateParts = shortDate.split('.');
+                    if (dateParts.length === 3) {
+                        const fullYear = `20${dateParts[2]}`; // Macht aus '26' -> '2026'
+                        const formattedDate = `${fullYear}-${dateParts[1]}-${dateParts[0]}`;
+                        document.getElementById('modal-date').value = formattedDate;
+                    }
+
+                    document.getElementById('modal-price').value = dataValues[2].textContent;
+                    document.getElementById('modal-quality').value = dataValues[3].textContent;
+                }
+            } else {
+                // Wenn es ein neuer, leerer Block ist: Datum auf heute setzen
+                document.getElementById('modal-date').valueAsDate = new Date();
+            }
+        } else {
+            // Wenn das globale Plus ('all') gedrückt wird: Datum auf heute setzen
+            document.getElementById('modal-date').valueAsDate = new Date();
+        }
+    };
     // Modal schließen
     window.closeModal = function() {
         modal.classList.add('hidden');
