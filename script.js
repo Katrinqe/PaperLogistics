@@ -173,11 +173,18 @@ document.addEventListener("DOMContentLoaded", () => {
     // Daten aus dem Modal bestätigen und in die UI schreiben
     window.confirmModal = function() {
         const type = document.getElementById('modal-type').value;
-        const date = document.getElementById('modal-date').value;
+     const rawDate = document.getElementById('modal-date').value;
         const price = document.getElementById('modal-price').value;
         const quality = document.getElementById('modal-quality').value;
 
-      // Die formatierte Ausgabe als sauberes UI-Grid
+        // Datum von YYYY-MM-DD in DD.MM.YY umwandeln für maximalen Platz
+        let shortDate = "";
+        if (rawDate) {
+            const parts = rawDate.split('-');
+            shortDate = `${parts[2]}.${parts[1]}.${parts[0].substring(2)}`;
+        }
+
+        // Die formatierte Ausgabe als sauberes UI-Grid
         const contentString = `
             <div class="block-data-grid">
                 <div class="data-item">
@@ -186,7 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 <div class="data-item">
                     <span class="data-label">Date</span>
-                    <span class="data-value">${date}</span>
+                    <span class="data-value">${shortDate}</span>
                 </div>
                 <div class="data-item">
                     <span class="data-label">Price</span>
