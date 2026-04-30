@@ -23,20 +23,21 @@ document.addEventListener("DOMContentLoaded", () => {
         greetingElement.textContent = 'Good evening';
     }
 
-    // Analog Clock Logic
-    const hourHand = document.getElementById('hour-hand');
-    const minHand = document.getElementById('min-hand');
-
+  // Analog Clock Logic
     function updateClock() {
         const now = new Date();
-        const hours = now.getHours() % 12;
+
+        const seconds = now.getSeconds();
         const minutes = now.getMinutes();
+        const hours = now.getHours();
 
-        const hourDeg = (hours * 30) + (minutes * 0.5); // 360 / 12 = 30
-        const minDeg = minutes * 6; // 360 / 60 = 6
+        const secondDeg = seconds * 6;
+        const minuteDeg = minutes * 6 + seconds * 0.1; // Smooth movement
+        const hourDeg = (hours % 12) * 30 + minutes * 0.5; // Modulo 12 für korrekte 12-Stunden-Anzeige hinzugefügt
 
-        hourHand.style.transform = `rotate(${hourDeg}deg)`;
-        minHand.style.transform = `rotate(${minDeg}deg)`;
+        document.getElementById("second-hand").style.transform = `rotate(${secondDeg}deg)`;
+        document.getElementById("minute-hand").style.transform = `rotate(${minuteDeg}deg)`;
+        document.getElementById("hour-hand").style.transform = `rotate(${hourDeg}deg)`;
     }
 
     setInterval(updateClock, 1000);
