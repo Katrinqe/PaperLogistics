@@ -148,47 +148,139 @@ header {
     border-radius: 50%;
     transform: translate(-50%, -50%);
 }
-/* Dashboard / Graph */
+/* Middle Layout (Teilt den Platz zwischen Kalender & Graph) */
+.middle-layout {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+    min-height: 0; /* Verhindert das Überlaufen auf kleinen Displays */
+}
+
+/* Calendar */
+.calendar-container {
+    background-color: #111111;
+    border-radius: 12px;
+    padding: 12px 15px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: inset 0 1px 3px rgba(255,255,255,0.05);
+}
+
+.calendar-header {
+    text-align: center;
+    font-size: 0.95rem;
+    color: #ffffff;
+    font-weight: 500;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 0.75rem;
+    color: #666666;
+    margin-bottom: 8px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    row-gap: 6px;
+}
+
+.calendar-day {
+    font-size: 0.85rem;
+    color: #aaaaaa;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
+    border-radius: 50%; /* Für die Einkreisung */
+}
+
+.calendar-day.today {
+    background-color: #ffffff;
+    color: #000000;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(255,255,255,0.4);
+}
+
+.calendar-day.empty {
+    visibility: hidden;
+}
+
+/* Dashboard / Graph Area */
 .dashboard {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    margin-bottom: 30px;
-}
-
-.graph-toggles {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
-.graph-toggles button {
-    background: none;
-    border: none;
-    color: #666666;
-    font-size: 0.9rem;
-    padding: 5px 10px;
-}
-
-.graph-toggles button.active {
-    color: #ffffff;
-    border-bottom: 1px solid #ffffff;
+    min-height: 0;
 }
 
 .graph-area {
     flex-grow: 1;
     background-color: #111111;
     border-radius: 12px;
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 150px; /* Diagramm ist jetzt flacher */
-    max-height: 220px; /* Verhindert, dass es auf großen Bildschirmen zu weit nach unten wuchert */
+    box-shadow: inset 0 1px 3px rgba(255,255,255,0.05);
 }
-.graph-area p {
+
+/* Inline Toggles (Der Slider im Diagramm) */
+.inline-toggles {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #000000;
+    border-radius: 20px;
+    display: flex;
+    padding: 3px;
+    z-index: 10;
+}
+
+.inline-toggles button {
+    background: transparent;
+    border: none;
+    color: #888888;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 5px 16px;
+    cursor: pointer;
+    z-index: 2;
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+.inline-toggles button.active {
+    color: #000000;
+}
+
+/* Der weiße Hintergrund-Slider */
+.toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    height: calc(100% - 6px);
+    width: calc(33.33% - 2px);
+    background-color: #ffffff;
+    border-radius: 16px;
+    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    z-index: 1;
+}
+
+.no-data-text {
     color: #444444;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     letter-spacing: 1px;
 }
 
