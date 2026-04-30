@@ -218,10 +218,16 @@ document.addEventListener("DOMContentLoaded", () => {
         closeModal();
     };
 
-    // Hilfsfunktion zum Updaten des HTML eines Blocks
+  // Hilfsfunktion zum Updaten des HTML eines Blocks und des Icons
     function updateBlock(index, htmlString) {
         const block = document.getElementById(`block-${index}`);
         block.innerHTML = htmlString;
         block.classList.add('filled');
+
+        // Greift auf den Button links neben dem Block zu und ändert das Icon von Plus zu Stift
+        const buttonElement = block.previousElementSibling;
+        if (buttonElement) {
+            buttonElement.innerHTML = '<i class="fa-solid fa-pen"></i>';
+        }
     }
 });
