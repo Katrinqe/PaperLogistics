@@ -138,12 +138,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 `;
                 blocksList.appendChild(blockRow);
             }
-        } else {
-            // Wenn man zurück und wieder rein geht, Blöcke leeren
+} else {
+            // Wenn man zurück und wieder rein geht, Blöcke leeren und Icons zurücksetzen
             for (let i = 0; i < 6; i++) {
                 const block = document.getElementById(`block-${i}`);
                 block.innerHTML = 'Empty Block';
                 block.classList.remove('filled');
+                
+                // Setzt das Stift-Icon wieder auf das Plus-Icon zurück
+                const buttonElement = block.previousElementSibling;
+                if (buttonElement) {
+                    buttonElement.innerHTML = '<i class="fa-solid fa-plus"></i>';
+                }
             }
         }
         
