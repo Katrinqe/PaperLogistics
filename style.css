@@ -43,11 +43,10 @@ body {
     padding: 20px;
 }
 
-/* Header */
 header {
     display: flex;
     flex-direction: column;
-    margin-bottom: 30px;
+    margin-bottom: 55px; /* Erhöht den Abstand drastisch, drückt den Graphen nach unten */
 }
 
 .logo-container {
@@ -57,7 +56,7 @@ header {
 }
 
 .top-logo {
-    height: 40px;
+    height: 48px; /* Logo ist jetzt 20% größer */
     width: auto;
 }
 
@@ -68,18 +67,22 @@ header {
 }
 
 #greeting {
-    font-size: 1.2rem;
-    font-weight: 300;
-    color: #cccccc;
+    font-size: 1.45rem; /* Größer */
+    font-weight: 400;
+    color: #e0e0e0;
+    font-family: "Georgia", "Times New Roman", serif; /* Edle, klassische Serifenschrift */
+    font-style: italic; /* Kursiv */
+    letter-spacing: 0.5px;
 }
 
 /* Analog Clock */
 .analog-clock {
-    width: 30px;
-    height: 30px;
-    border: 2px solid #ffffff;
+    width: 34px; /* Minimal größer für bessere Details */
+    height: 34px;
+    border: 1px solid #888888; /* Feinerer, dezenterer Rand */
     border-radius: 50%;
     position: relative;
+    box-shadow: inset 0 0 4px rgba(255,255,255,0.1); /* Minimale Tiefe */
 }
 
 .hand {
@@ -88,19 +91,30 @@ header {
     left: 50%;
     transform-origin: bottom;
     background-color: #ffffff;
-    border-radius: 2px;
+    border-radius: 4px; /* Weichere Zeiger-Kanten */
 }
 
 .hour {
-    width: 2px;
-    height: 8px;
-    margin-left: -1px;
+    width: 1.5px; /* Filigraner */
+    height: 9px;
+    margin-left: -0.75px;
 }
 
 .minute {
-    width: 2px;
-    height: 12px;
-    margin-left: -1px;
+    width: 1px; /* Sehr filigran */
+    height: 14px;
+    margin-left: -0.5px;
+}
+
+.center-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 3.5px;
+    height: 3.5px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
 }
 
 /* Dashboard / Graph */
@@ -138,9 +152,9 @@ header {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 200px;
+    min-height: 150px; /* Diagramm ist jetzt flacher */
+    max-height: 220px; /* Verhindert, dass es auf großen Bildschirmen zu weit nach unten wuchert */
 }
-
 .graph-area p {
     color: #444444;
     font-size: 1.2rem;
