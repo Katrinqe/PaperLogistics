@@ -49,4 +49,62 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(() => console.log('Service Worker registriert'))
             .catch(err => console.error('Service Worker Fehler:', err));
     }
+
+    // Inline Toggle Slider Logic (Day/Week/Month)
+    window.moveSlider = function(index, buttonEl) {
+        // Active Klasse aktualisieren
+        const buttons = document.querySelectorAll('#graph-toggles button');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        buttonEl.classList.add('active');
+
+        // Den weißen Hintergrund verschieben (0%, 100%, 200% seiner eigenen Breite)
+        const slider = document.getElementById('toggle-slider');
+        slider.style.transform = `translateX(${index * 100}%)`;
+    };
+
+    // Calendar Engine
+    function renderCalendar() {
+        const date = new Date();
+        const currentMonth = date.getMonth();
+        const currentYear = date.getFullYear();
+        const today = date.getDate();
+
+        // Monate definieren (Englisch für einheitliches Design)
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('calendar-month-year').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+        const daysContainer = document.getElementById('calendar-days');
+        daysContainer.innerHTML = ''; // Vorherigen Inhalt leeren
+
+        // Erster Tag des Monats (0 = Sonntag, 1 = Montag)
+        const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+        // Shift, damit die Woche am Montag beginnt (Europäischer Standard)
+        const startDay = firstDay === 0 ? 6 : firstDay - 1; 
+
+        // Wie viele Tage hat der aktuelle Monat?
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+        // Leere Elemente einfügen, um den Start-Wochentag korrekt auszurichten
+        for (let i = 0; i < startDay; i++) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.classList.add('calendar-day', 'empty');
+            daysContainer.appendChild(emptyDiv);
+        }
+
+        // Die echten Tage generieren
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dayDiv = document.createElement('div');
+            dayDiv.classList.add('calendar-day');
+            dayDiv.textContent = i;
+            
+            // Wenn der Tag heute ist, die Highlight-Klasse geben
+            if (i === today) {
+                dayDiv.classList.add('today');
+            }
+            
+            daysContainer.appendChild(dayDiv);
+        }
+    }
+
+    renderCalendar();
 });
