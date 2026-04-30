@@ -330,3 +330,169 @@ header {
 .logout {
     color: #ff4444;
 }
+
+/* --- Screen Management & Animation --- */
+.screen {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    animation: fadeIn 0.3s ease-in-out;
+    height: 100%;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* --- New Container Screen --- */
+.container-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    background-color: #111;
+    border-radius: 12px;
+    padding: 10px 15px;
+}
+
+#container-name-input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 500;
+    width: 100%;
+    outline: none;
+}
+
+.plus-btn {
+    background-color: #333;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+}
+
+.plus-btn:active { background-color: #555; }
+
+/* Blocks List */
+.blocks-list {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.block-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.block-content {
+    background-color: #111;
+    flex-grow: 1;
+    border-radius: 12px;
+    min-height: 50px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    color: #666;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.block-content.filled {
+    color: #ccc;
+    border-left: 3px solid #fff; /* Kleines Highlight, dass er gefüllt ist */
+}
+
+/* Bottom Actions */
+.bottom-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: auto;
+}
+
+.btn-back {
+    background-color: #222;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    flex: 1;
+    font-weight: 500;
+}
+
+.btn-create {
+    background-color: #fff;
+    color: #000;
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    flex: 2; /* Nimmt doppelt so viel Platz ein wie der Back-Button */
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+/* --- Modal --- */
+.modal {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: #1a1a1a;
+    width: 90%;
+    max-width: 350px;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.modal-content h3 { margin-bottom: 10px; text-align: center; }
+
+.modal-content label { font-size: 0.8rem; color: #888; }
+
+.modal-content select, .modal-content input {
+    background-color: #000;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    outline: none;
+    font-size: 1rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-cancel, .btn-confirm {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-weight: bold;
+}
+
+.btn-cancel { background-color: #333; color: #fff; }
+.btn-confirm { background-color: #fff; color: #000; }
