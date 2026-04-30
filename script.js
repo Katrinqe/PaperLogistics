@@ -177,9 +177,27 @@ document.addEventListener("DOMContentLoaded", () => {
         const price = document.getElementById('modal-price').value;
         const quality = document.getElementById('modal-quality').value;
 
-        // Die formatierte Ausgabe für den Block
-        const contentString = `<b>Type:</b> ${type} <br> <b>Date:</b> ${date} <br> <b>Price:</b> ${price} | <b>Quality:</b> ${quality}`;
-
+      // Die formatierte Ausgabe als sauberes UI-Grid
+        const contentString = `
+            <div class="block-data-grid">
+                <div class="data-item">
+                    <span class="data-label">Type</span>
+                    <span class="data-value">${type}</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Date</span>
+                    <span class="data-value">${date}</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Price</span>
+                    <span class="data-value">${price}</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Quality</span>
+                    <span class="data-value">${quality}</span>
+                </div>
+            </div>
+        `;
         if (currentModalTarget === 'all') {
             // Alle 6 Blöcke füllen
             for (let i = 0; i < 6; i++) {
