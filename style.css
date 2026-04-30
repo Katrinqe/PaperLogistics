@@ -518,6 +518,8 @@ header {
     border-radius: 8px;
     outline: none;
     font-size: 1rem;
+    text-align: center; /* Zentriert den Text im Eingabefeld */
+    text-align-last: center; /* Zwingt auch die Dropdown-Auswahl in allen mobilen Browsern exakt in die Mitte */
 }
 
 .modal-actions {
