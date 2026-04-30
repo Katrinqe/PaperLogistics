@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Paperlogistics</title>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <!-- Externe Icons (FontAwesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <img src="logo.png" alt="Paperlogistics Logo">
+    </div>
+
+    <!-- Main App Content -->
+    <main id="app-content" class="hidden">
+        <!-- Header -->
+        <header>
+            <div class="logo-container">
+                <img src="logo.png" alt="Logo" class="top-logo">
+            </div>
+            <div class="header-info">
+                <span id="greeting">Good morning</span>
+                <div class="analog-clock">
+                    <div class="hand hour" id="hour-hand"></div>
+                    <div class="hand minute" id="min-hand"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard / Graph -->
+        <section class="dashboard">
+            <div class="graph-toggles">
+                <button class="active">Day</button>
+                <button>Week</button>
+                <button>Month</button>
+            </div>
+            <div class="graph-area">
+                <p>No data</p>
+            </div>
+        </section>
+
+        <!-- Action Grid (Icons only) -->
+        <nav class="action-grid">
+            <button aria-label="Neuen QR erstellen" class="icon-btn">
+                <i class="fa-solid fa-qrcode"></i><span class="badge">+</span>
+            </button>
+            <button aria-label="Scannen" class="icon-btn">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+            <button aria-label="Listen" class="icon-btn">
+                <i class="fa-solid fa-list"></i>
+            </button>
+            <button aria-label="Neues Geschäft" class="icon-btn">
+                <i class="fa-solid fa-building"></i><span class="badge">+</span>
+            </button>
+            <button aria-label="Historie" class="icon-btn">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </button>
+            <button aria-label="Log Out" class="icon-btn logout">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+        </nav>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
