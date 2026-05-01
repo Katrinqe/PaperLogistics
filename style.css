@@ -345,116 +345,189 @@ header {
     to { opacity: 1; transform: translateX(0); }
 }
 
-/* --- New Container Screen --- */
-.container-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    background-color: #111;
-    border-radius: 12px;
-    padding: 10px 15px;
+/* --- New Container Screen (V2) --- */
+.dynamic-header {
+    text-align: center;
+    margin-bottom: 15px;
 }
 
-#container-name-input {
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 1.2rem;
-    font-weight: 500;
-    width: 100%;
-    outline: none;
+#current-view-title {
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    color: #888;
+    transition: color 0.3s ease;
 }
 
-.plus-btn {
-    background-color: #333;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.2rem;
-}
-
-.plus-btn:active { background-color: #555; }
-
-/* Blocks List */
-.blocks-list {
-    flex-grow: 1;
+.editor-section {
     display: flex;
     flex-direction: column;
-    gap: 15px; /* Mehr Abstand zwischen den Blöcken */
-    overflow-y: auto;
-    margin-bottom: 20px;
-}
-
-.block-row {
-    display: flex;
-    align-items: stretch; /* Sorgt dafür, dass der Plus-Button genauso hoch wird wie der Block */
     gap: 12px;
-}
-
-/* Spezifisches Styling für das Plus neben den Blöcken */
-.plus-btn.block-plus {
-    width: 45px;
-    height: auto; 
-    min-height: 85px; /* Macht den Button klobig */
-    border-radius: 12px;
-}
-
-.block-content {
-    background-color: #111;
+    margin-bottom: 15px;
     flex-grow: 1;
-    border-radius: 12px;
-    min-height: 85px; /* Aus Zeilen werden echte Blöcke */
-    padding: 15px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+#v2-name {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #333;
+    color: #fff;
+    font-size: 1.4rem;
+    font-weight: bold;
+    padding: 5px 0;
+    outline: none;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.setting-group {
     display: flex;
-    align-items: center; 
-    justify-content: center; /* Hält "Empty Block" mittig */
-    color: #555;
-    font-size: 1rem;
-    transition: background-color 0.3s ease;
+    flex-direction: column;
+    gap: 5px;
 }
 
-.block-content.filled {
-    /* Absolut keine optischen oder dimensionellen Änderungen. Bleibt #111 */
-    justify-content: space-between; 
+.setting-group label {
+    font-size: 0.75rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-/* --- Das neue Grid-Design für die Daten im Block --- */
-.block-data-grid {
+.toggle-row {
+    display: flex;
+    background-color: #111;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.toggle-row button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #666;
+    padding: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.toggle-row button.active {
+    background-color: #fff;
+    color: #000;
+}
+
+.blocks-grid {
     display: grid;
-    /* Spalten dynamisch aufteilen: Datum bekommt minimal mehr Platz */
-    grid-template-columns: 1fr 1.2fr 1fr 1fr; 
-    width: 100%;
-    gap: 5px; /* Abstand leicht verringert, um den Elementen mehr Raum zu geben */
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+}
+
+.blocks-grid button {
+    background-color: #111;
+    border: none;
+    color: #666;
+    padding: 10px 0;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.blocks-grid button.active {
+    background-color: #fff;
+    color: #000;
+}
+
+#v2-date {
+    background-color: #111;
+    border: none;
+    color: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
     text-align: center;
 }
 
-.data-item {
+/* --- Live Card Slider --- */
+.live-card-slider {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 15px;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    /* Versteckt die Scrollbar */
+    scrollbar-width: none; 
+    -ms-overflow-style: none;
+}
+.live-card-slider::-webkit-scrollbar {
+    display: none;
+}
+
+.live-card {
+    min-width: 100%;
+    scroll-snap-align: center;
+    background-color: #1a1a1a;
+    border-radius: 16px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    border: 1px solid #333;
+    transition: all 0.3s ease;
+}
+
+/* Blaues Theme für die Blöcke */
+.live-card.card-blue {
+    background-color: #001122;
+    border: 1px solid #0055ff;
+}
+
+.live-card.card-blue * {
+    color: #88bbff !important;
+}
+.live-card.card-blue .card-title {
+    color: #ffffff !important;
+}
+
+.card-info {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    justify-content: center;
-    overflow: hidden; /* Verhindert das Ausbrechen von Text */
+    gap: 4px;
+    flex-grow: 1;
 }
 
-.data-label {
-    font-size: 0.7rem;
-    color: #777;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.data-value {
-    font-size: 0.9rem; /* Minimal kleiner für perfekte Passform */
+.card-title {
+    font-size: 1.1rem;
+    font-weight: bold;
     color: #fff;
-    font-weight: 600;
-    white-space: nowrap; /* Zwingt den Text unerbittlich auf exakt eine Zeile */
+    margin-bottom: 4px;
 }
+
+.card-detail {
+    font-size: 0.8rem;
+    color: #aaa;
+}
+
+.card-qr-box {
+    background-color: #fff;
+    padding: 5px;
+    border-radius: 8px;
+    width: 70px;
+    height: 70px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: 15px;
+}
+
+.card-qr-box img, .card-qr-box canvas {
+    width: 100%;
+    height: 100%;
+}
+
 /* Bottom Actions */
 .bottom-actions {
     display: flex;
@@ -478,67 +551,10 @@ header {
     border: none;
     border-radius: 12px;
     padding: 15px;
-    flex: 2; /* Nimmt doppelt so viel Platz ein wie der Back-Button */
+    flex: 2;
     font-weight: bold;
     font-size: 1.1rem;
 }
-
-/* --- Modal --- */
-.modal {
-    position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
-    background-color: rgba(0, 0, 0, 0.85);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background-color: #1a1a1a;
-    width: 90%;
-    max-width: 350px;
-    border-radius: 16px;
-    padding: 20px;
-    border: 1px solid #333;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.modal-content h3 { margin-bottom: 10px; text-align: center; }
-
-.modal-content label { font-size: 0.8rem; color: #888; }
-
-.modal-content select, .modal-content input {
-    background-color: #000;
-    border: 1px solid #333;
-    color: #fff;
-    padding: 10px;
-    border-radius: 8px;
-    outline: none;
-    font-size: 1rem;
-    text-align: center; /* Zentriert den Text im Eingabefeld */
-    text-align-last: center; /* Zwingt auch die Dropdown-Auswahl in allen mobilen Browsern exakt in die Mitte */
-}
-
-.modal-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-}
-
-.btn-cancel, .btn-confirm {
-    flex: 1;
-    padding: 12px;
-    border-radius: 8px;
-    border: none;
-    font-weight: bold;
-}
-
-.btn-cancel { background-color: #333; color: #fff; }
-.btn-confirm { background-color: #fff; color: #000; }
-
 /* --- List Screen --- */
 .list-header {
     display: flex;
