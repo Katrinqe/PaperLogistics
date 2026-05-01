@@ -436,6 +436,13 @@ header {
     color: #000;
 }
 
+/* Dynamische blaue Färbung für Block-Modus */
+.editor-section.block-mode .toggle-row button.active,
+.editor-section.block-mode .blocks-grid button.active {
+    background-color: #0055ff;
+    color: #ffffff;
+}
+
 #v2-date {
     background-color: #111;
     border: none;
