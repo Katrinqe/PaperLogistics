@@ -70,7 +70,7 @@
             <button aria-label="Scannen" class="icon-btn">
                 <i class="fa-solid fa-expand"></i>
             </button>
-            <button aria-label="Listen" class="icon-btn">
+           <button aria-label="Listen" class="icon-btn" id="btn-list">
                 <i class="fa-solid fa-list"></i>
             </button>
             <button aria-label="Neues Geschäft" class="icon-btn">
@@ -101,6 +101,25 @@
             <div class="bottom-actions">
                 <button class="btn-back" onclick="closeNewContainerScreen()">Back</button>
                 <button class="btn-create">Create</button>
+            </div>
+        </div>
+
+        <!-- === SCREEN 3: LIST === -->
+        <div id="list-screen" class="screen hidden">
+            <div class="list-header">
+                <button class="back-arrow" onclick="closeListScreen()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="list-slider">
+                    <button class="active">QR Codes</button>
+                    <button>Shops</button>
+                </div>
+                <!-- Unsichtbarer Platzhalter, damit der Slider perfekt mittig ist (Flexbox-Trick) -->
+                <div style="width: 30px;"></div> 
+            </div>
+            
+            <div class="list-content" id="qr-list-content">
+                <!-- JS generiert hier die gespeicherten QR-Codes -->
             </div>
         </div>
 
@@ -141,7 +160,8 @@
         </div>
 
     </main>
-
+<!-- Externe Bibliothek für QR-Codes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
