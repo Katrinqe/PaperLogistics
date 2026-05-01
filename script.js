@@ -158,10 +158,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- UI Event Listeners für Eingaben ---
     
-    // Name Input
+ // Name Input
     document.getElementById('v2-name').addEventListener('input', (e) => {
-        if(currentActiveIndex === -1) masterState.name = e.target.value;
-        // Name-Änderung in Blöcken ignorieren wir in der Logik, da Name = ContainerName
+        if(currentActiveIndex === -1) {
+            masterState.name = e.target.value;
+        } else {
+            childStates[currentActiveIndex].name = e.target.value;
+        }
         renderCards();
     });
 
@@ -219,9 +222,15 @@ document.addEventListener("DOMContentLoaded", () => {
             else b.classList.remove('active');
         });
 
-        // Child States anpassen
+  // Child States anpassen
         while (childStates.length < count) {
-            childStates.push({ id: generateUUID('B'), format: null, quality: null, date: null });
+            childStates.push({ 
+                id: generateUUID('B'), 
+                name: `Block_${childStates.length + 1}`, // Gibt dem Block direkt seinen Namen
+                format: null, 
+                quality: null, 
+                date: null 
+            });
         }
         if (childStates.length > count) {
             childStates.length = count; // Kürzen
@@ -296,7 +305,7 @@ document.addEventListener("DOMContentLoaded", () => {
             bCard.className = 'live-card card-blue';
             bCard.innerHTML = `
                 <div class="card-info">
-                    <div class="card-title">Block ${index + 1}</div>
+                    <div class="card-title">${child.name}</div>
                     <div class="card-detail">Format: ${child.format || masterState.format || '-'}</div>
                     <div class="card-detail">Quality: ${child.quality || masterState.quality || '-'}</div>
                     <div class="card-detail">Date: ${child.date || masterState.date || '-'}</div>
@@ -332,15 +341,23 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    function updateUIFromScroll(index) {
-        // Titel anpassen
+function updateUIFromScroll(index) {
+        const editorSection = document.querySelector('.editor-section');
+        
+        // Titel, Name und Farbe anpassen
         if (index === -1) {
             currentViewTitle.textContent = 'CONTAINER';
             currentViewTitle.style.color = '#888';
+            document.getElementById('v2-name').value = masterState.name;
+            editorSection.classList.remove('block-mode'); // Weiße Auswahlfelder
+            
             syncInputsWithState(masterState);
         } else {
-            currentViewTitle.textContent = `BLOCK ${index + 1}`;
-            currentViewTitle.style.color = '#0055ff'; // Blau für Blöcke
+            currentViewTitle.textContent = 'BLOCK'; // Oben steht nur noch BLOCK
+            currentViewTitle.style.color = '#0055ff'; 
+            document.getElementById('v2-name').value = childStates[index].name; // Zeigt Block_1 etc.
+            editorSection.classList.add('block-mode'); // Blaue Auswahlfelder
+            
             // Sync mit spezifischem Block oder Fallback auf Master
             const child = childStates[index];
             syncInputsWithState({
@@ -395,10 +412,11 @@ document.addEventListener("DOMContentLoaded", () => {
             blocks: []
         };
 
-        // Die individuellen Werte (oder Vererbungen) der Blöcke abspeichern
+// Die individuellen Werte (oder Vererbungen) der Blöcke abspeichern
         childStates.forEach(child => {
             containerData.blocks.push({
                 id: child.id,
+                name: child.name, // Speichert nun auch den individuellen Block-Namen ab
                 format: child.format || masterState.format,
                 quality: child.quality || masterState.quality,
                 date: child.date || masterState.date,
