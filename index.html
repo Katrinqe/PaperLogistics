@@ -86,22 +86,69 @@
         </nav> <!-- HIER BLEIBT DEIN KOMPLETTER BISHERIGER CODE (Header, Middle-Layout, Action-Grid) -->
         </div>
 
-        <!-- === SCREEN 2: NEW CONTAINER === -->
+ <!-- === SCREEN 2: NEW CONTAINER (V2) === -->
         <div id="new-container-screen" class="screen hidden">
-            <div class="container-header">
-                <input type="text" id="container-name-input" value="Container_001">
-                <button class="plus-btn global-plus" onclick="openModal('all')">
-                    <i class="fa-solid fa-plus"></i>
-                </button>
+            <!-- Dynamischer Header -->
+            <div class="dynamic-header">
+                <h2 id="current-view-title">CONTAINER</h2>
             </div>
             
-            <div class="blocks-list" id="blocks-list">
-                <!-- JS generiert hier die 6 Blöcke -->
+            <!-- Editor Sektion (Eingaben) -->
+            <div class="editor-section">
+                <input type="text" id="v2-name" value="Container_001">
+                
+                <div class="setting-group">
+                    <label>QR Design</label>
+                    <div class="toggle-row" id="v2-qr-design">
+                        <button class="active" data-val="squares"><i class="fa-solid fa-qrcode"></i></button>
+                        <button data-val="dots"><i class="fa-solid fa-braille"></i></button>
+                        <button data-val="rounded"><i class="fa-solid fa-border-all"></i></button>
+                        <button data-val="mixed"><i class="fa-solid fa-barcode"></i></button>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Format</label>
+                    <div class="toggle-row" id="v2-format">
+                        <button data-val="A5">A5</button>
+                        <button data-val="A6">A6</button>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Blocks</label>
+                    <div class="blocks-grid" id="v2-blocks">
+                        <button data-val="1">1</button><button data-val="2">2</button>
+                        <button data-val="3">3</button><button data-val="4">4</button>
+                        <button data-val="5">5</button><button data-val="6">6</button>
+                        <button data-val="7">7</button><button data-val="8">8</button>
+                        <button data-val="9">9</button><button data-val="10">10</button>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Quality</label>
+                    <div class="toggle-row" id="v2-quality">
+                        <button data-val="High">High</button>
+                        <button data-val="Mid">Mid</button>
+                        <button data-val="Low">Low</button>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Date</label>
+                    <input type="date" id="v2-date">
+                </div>
+            </div>
+
+            <!-- Live Card Slider (Swipe Bereich) -->
+            <div class="live-card-slider" id="card-slider">
+                <!-- JS generiert hier die Container-Card und die Block-Cards -->
             </div>
 
             <div class="bottom-actions">
                 <button class="btn-back" onclick="closeNewContainerScreen()">Back</button>
-                <button class="btn-create">Create</button>
+                <button class="btn-create" id="btn-confirm-v2">Confirm</button>
             </div>
         </div>
 
