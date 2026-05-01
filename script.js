@@ -108,166 +108,237 @@ document.addEventListener("DOMContentLoaded", () => {
 
     renderCalendar();
 
-    // --- New Container Screen Logic ---
+   // --- New Container Screen Logic (Master & Child) ---
     const homeScreen = document.getElementById('home-screen');
     const newContainerScreen = document.getElementById('new-container-screen');
-    const modal = document.getElementById('data-modal');
-    const blocksList = document.getElementById('blocks-list');
+    const cardSlider = document.getElementById('card-slider');
+    const currentViewTitle = document.getElementById('current-view-title');
     
-    let containerCounter = 1; // Zählt die Container für den automatischen Namen hoch
-    let currentModalTarget = null; // Speichert, ob 'all' oder ein spezifischer Block (0-5) bearbeitet wird
+    // Master State (Container) & Child States (Blöcke)
+    let masterState = { id: '', name: 'Container_001', qrDesign: 'squares', format: '', blocks: 0, quality: '', date: '' };
+    let childStates = []; // Array of objects
+    let currentActiveIndex = -1; // -1 = Container, 0-9 = Blöcke
 
-    // Öffnet den neuen Screen
+    // Hilfsfunktion: ID generieren (falls noch nicht in Database Logic definiert)
+    function generateUUID(prefix) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let res = prefix + '-';
+        for (let i=0; i<6; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+        return res;
+    }
+
+    // Öffnen des Screens
     document.getElementById('btn-new-qr').addEventListener('click', () => {
         homeScreen.classList.add('hidden');
         newContainerScreen.classList.remove('hidden');
         
-        // Generiere Name, z.B. Container_001
-        document.getElementById('container-name-input').value = `Container_${String(containerCounter).padStart(3, '0')}`;
+        // Initialer Reset
+        masterState = { 
+            id: generateUUID('C'), 
+            name: 'Container_001', 
+            qrDesign: 'squares', 
+            format: '', 
+            blocks: 0, 
+            quality: '', 
+            date: new Date().toISOString().split('T')[0] 
+        };
+        childStates = [];
+        currentActiveIndex = -1;
         
-        // Die 6 Blöcke generieren (falls noch nicht geschehen)
-        if (blocksList.children.length === 0) {
-            for (let i = 0; i < 6; i++) {
-                const blockRow = document.createElement('div');
-                blockRow.className = 'block-row';
-                blockRow.innerHTML = `
-                    <button class="plus-btn block-plus" onclick="openModal(${i})">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
-                    <div class="block-content" id="block-${i}">Empty Block</div>
-                `;
-                blocksList.appendChild(blockRow);
-            }
-} else {
-            // Wenn man zurück und wieder rein geht, Blöcke leeren und Icons zurücksetzen
-            for (let i = 0; i < 6; i++) {
-                const block = document.getElementById(`block-${i}`);
-                block.innerHTML = 'Empty Block';
-                block.classList.remove('filled');
-                
-                // Setzt das Stift-Icon wieder auf das Plus-Icon zurück
-                const buttonElement = block.previousElementSibling;
-                if (buttonElement) {
-                    buttonElement.innerHTML = '<i class="fa-solid fa-plus"></i>';
-                }
-            }
-        }
-        
-        // Setze das Datum im Modal auf heute als Standard
-        document.getElementById('modal-date').valueAsDate = new Date();
+        document.getElementById('v2-name').value = masterState.name;
+        document.getElementById('v2-date').value = masterState.date;
+        resetToggles();
+        renderCards();
     });
 
-    // Zurück zum Home Screen
     window.closeNewContainerScreen = function() {
         newContainerScreen.classList.add('hidden');
         homeScreen.classList.remove('hidden');
     };
 
-// Modal öffnen und bei Bedarf mit bestehenden Daten füllen
-    window.openModal = function(target) {
-        currentModalTarget = target;
-        modal.classList.remove('hidden');
-        const title = document.getElementById('modal-title');
-        title.textContent = target === 'all' ? 'Define All 6 Blocks' : `Define Block ${target + 1}`;
+    // --- UI Event Listeners für Eingaben ---
+    
+    // Name Input
+    document.getElementById('v2-name').addEventListener('input', (e) => {
+        if(currentActiveIndex === -1) masterState.name = e.target.value;
+        // Name-Änderung in Blöcken ignorieren wir in der Logik, da Name = ContainerName
+        renderCards();
+    });
 
-        // Logik zum Vorausfüllen der Daten
-        if (target !== 'all') {
-            const block = document.getElementById(`block-${target}`);
+    // Date Input
+    document.getElementById('v2-date').addEventListener('input', (e) => {
+        updateState('date', e.target.value);
+    });
+
+    // Generische Toggle Logic für Buttons
+    document.querySelectorAll('.toggle-row button, .blocks-grid button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const val = this.getAttribute('data-val');
+            const parentId = this.parentElement.id;
             
-            // Prüfen, ob der Block bereits Daten enthält
-            if (block.classList.contains('filled')) {
-                // Liest alle 4 Werte aus dem HTML-Grid aus
-                const dataValues = block.querySelectorAll('.data-value');
-                if (dataValues.length === 4) {
-                    document.getElementById('modal-type').value = dataValues[0].textContent;
+            // UI Update (Active Class)
+            if(parentId !== 'v2-blocks') {
+                this.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            }
 
-                    // Datum rückwärts von DD.MM.YY nach YYYY-MM-DD konvertieren
-                    const shortDate = dataValues[1].textContent;
-                    const dateParts = shortDate.split('.');
-                    if (dateParts.length === 3) {
-                        const fullYear = `20${dateParts[2]}`; // Macht aus '26' -> '2026'
-                        const formattedDate = `${fullYear}-${dateParts[1]}-${dateParts[0]}`;
-                        document.getElementById('modal-date').value = formattedDate;
-                    }
-
-                    document.getElementById('modal-price').value = dataValues[2].textContent;
-                    document.getElementById('modal-quality').value = dataValues[3].textContent;
+            // Logic Routing
+            if (parentId === 'v2-qr-design') updateState('qrDesign', val);
+            if (parentId === 'v2-format') {
+                updateState('format', val);
+                // Smart-Default: A5 = 5 Blöcke, A6 = 5 Blöcke (anpassbar)
+                if (currentActiveIndex === -1 && masterState.blocks === 0) {
+                    updateBlocksCount(5);
                 }
-            } else {
-                // Wenn es ein neuer, leerer Block ist: Datum auf heute setzen
-                document.getElementById('modal-date').valueAsDate = new Date();
             }
+            if (parentId === 'v2-blocks') {
+                // Blocks können nur im Container-Modus geändert werden
+                if (currentActiveIndex === -1) updateBlocksCount(parseInt(val));
+            }
+            if (parentId === 'v2-quality') updateState('quality', val);
+        });
+    });
+
+    function updateState(key, value) {
+        if (currentActiveIndex === -1) {
+            // Master Update: Ändert Container und löscht individuelle Child-Overrides
+            masterState[key] = value;
+            childStates.forEach(child => child[key] = null);
         } else {
-            // Wenn das globale Plus ('all') gedrückt wird: Datum auf heute setzen
-            document.getElementById('modal-date').valueAsDate = new Date();
+            // Child Update: Überschreibt nur diesen spezifischen Block
+            childStates[currentActiveIndex][key] = value;
         }
-    };
-    // Modal schließen
-    window.closeModal = function() {
-        modal.classList.add('hidden');
-    };
+        renderCards();
+    }
 
-    // Daten aus dem Modal bestätigen und in die UI schreiben
-    window.confirmModal = function() {
-        const type = document.getElementById('modal-type').value;
-     const rawDate = document.getElementById('modal-date').value;
-        const price = document.getElementById('modal-price').value;
-        const quality = document.getElementById('modal-quality').value;
+    function updateBlocksCount(count) {
+        masterState.blocks = count;
+        // UI für Blocks updaten
+        document.querySelectorAll('#v2-blocks button').forEach(b => {
+            if (parseInt(b.getAttribute('data-val')) <= count) b.classList.add('active');
+            else b.classList.remove('active');
+        });
 
-        // Datum von YYYY-MM-DD in DD.MM.YY umwandeln für maximalen Platz
-        let shortDate = "";
-        if (rawDate) {
-            const parts = rawDate.split('-');
-            shortDate = `${parts[2]}.${parts[1]}.${parts[0].substring(2)}`;
+        // Child States anpassen
+        while (childStates.length < count) {
+            childStates.push({ id: generateUUID('B'), format: null, quality: null, date: null });
         }
+        if (childStates.length > count) {
+            childStates.length = count; // Kürzen
+        }
+        renderCards();
+    }
 
-        // Die formatierte Ausgabe als sauberes UI-Grid
-        const contentString = `
-            <div class="block-data-grid">
-                <div class="data-item">
-                    <span class="data-label">Type</span>
-                    <span class="data-value">${type}</span>
-                </div>
-                <div class="data-item">
-                    <span class="data-label">Date</span>
-                    <span class="data-value">${shortDate}</span>
-                </div>
-                <div class="data-item">
-                    <span class="data-label">Price</span>
-                    <span class="data-value">${price}</span>
-                </div>
-                <div class="data-item">
-                    <span class="data-label">Quality</span>
-                    <span class="data-value">${quality}</span>
-                </div>
+    function resetToggles() {
+        document.querySelectorAll('.toggle-row button, .blocks-grid button').forEach(b => b.classList.remove('active'));
+        document.querySelector('#v2-qr-design button[data-val="squares"]').classList.add('active');
+    }
+
+    // --- Rendering der Live Cards ---
+    
+    // Aggregations-Funktion (Sammelt z.B. High / Low)
+    function getAggregated(key) {
+        let values = new Set();
+        if (masterState[key]) values.add(masterState[key]);
+        childStates.forEach(child => {
+            if (child[key]) values.add(child[key]);
+        });
+        return Array.from(values).join(' / ') || '-';
+    }
+
+    function renderCards() {
+        cardSlider.innerHTML = '';
+        
+        // 1. Container Card rendern
+        const cCard = document.createElement('div');
+        cCard.className = 'live-card';
+        cCard.innerHTML = `
+            <div class="card-info">
+                <div class="card-title">${masterState.name || 'Unnamed Container'}</div>
+                <div class="card-detail">Format: ${getAggregated('format')}</div>
+                <div class="card-detail">Quality: ${getAggregated('quality')}</div>
+                <div class="card-detail">Date: ${getAggregated('date')}</div>
             </div>
+            <div class="card-qr-box" id="qr-render-c"></div>
         `;
-        if (currentModalTarget === 'all') {
-            // Alle 6 Blöcke füllen
-            for (let i = 0; i < 6; i++) {
-                updateBlock(i, contentString);
-            }
-        } else {
-            // Nur den einen spezifischen Block füllen
-            updateBlock(currentModalTarget, contentString);
+        cardSlider.appendChild(cCard);
+
+        // 2. Block Cards rendern
+        childStates.forEach((child, index) => {
+            const bCard = document.createElement('div');
+            bCard.className = 'live-card card-blue';
+            bCard.innerHTML = `
+                <div class="card-info">
+                    <div class="card-title">Block ${index + 1}</div>
+                    <div class="card-detail">Format: ${child.format || masterState.format || '-'}</div>
+                    <div class="card-detail">Quality: ${child.quality || masterState.quality || '-'}</div>
+                    <div class="card-detail">Date: ${child.date || masterState.date || '-'}</div>
+                </div>
+                <div class="card-qr-box" id="qr-render-b${index}"></div>
+            `;
+            cardSlider.appendChild(bCard);
+        });
+
+        // 3. QR Codes generieren (Nur die statischen IDs)
+        new QRCode(document.getElementById('qr-render-c'), {
+            text: masterState.id, width: 60, height: 60, colorDark: "#000000", colorLight: "#ffffff"
+        });
+        
+        childStates.forEach((child, index) => {
+            new QRCode(document.getElementById(`qr-render-b${index}`), {
+                // Blaue QR Codes für die Blöcke
+                text: child.id, width: 60, height: 60, colorDark: "#0055ff", colorLight: "#ffffff"
+            });
+        });
+    }
+
+    // --- Swipe Detection Logic ---
+    cardSlider.addEventListener('scroll', () => {
+        const scrollX = cardSlider.scrollLeft;
+        const cardWidth = cardSlider.clientWidth;
+        
+        // Berechnet, welche Karte aktuell im Fokus ist (-1 = Container, 0+ = Block)
+        const index = Math.round(scrollX / cardWidth) - 1;
+        
+        if (currentActiveIndex !== index) {
+            currentActiveIndex = index;
+            updateUIFromScroll(index);
         }
+    });
 
-        closeModal();
-    };
-
-  // Hilfsfunktion zum Updaten des HTML eines Blocks und des Icons
-    function updateBlock(index, htmlString) {
-        const block = document.getElementById(`block-${index}`);
-        block.innerHTML = htmlString;
-        block.classList.add('filled');
-
-        // Greift auf den Button links neben dem Block zu und ändert das Icon von Plus zu Stift
-        const buttonElement = block.previousElementSibling;
-        if (buttonElement) {
-            buttonElement.innerHTML = '<i class="fa-solid fa-pen"></i>';
+    function updateUIFromScroll(index) {
+        // Titel anpassen
+        if (index === -1) {
+            currentViewTitle.textContent = 'CONTAINER';
+            currentViewTitle.style.color = '#888';
+            syncInputsWithState(masterState);
+        } else {
+            currentViewTitle.textContent = `BLOCK ${index + 1}`;
+            currentViewTitle.style.color = '#0055ff'; // Blau für Blöcke
+            // Sync mit spezifischem Block oder Fallback auf Master
+            const child = childStates[index];
+            syncInputsWithState({
+                format: child.format || masterState.format,
+                quality: child.quality || masterState.quality,
+                date: child.date || masterState.date
+            });
         }
     }
 
+    function syncInputsWithState(stateObj) {
+        document.querySelectorAll('#v2-format button, #v2-quality button').forEach(b => b.classList.remove('active'));
+        if (stateObj.format) {
+            const btn = document.querySelector(`#v2-format button[data-val="${stateObj.format}"]`);
+            if (btn) btn.classList.add('active');
+        }
+        if (stateObj.quality) {
+            const btn = document.querySelector(`#v2-quality button[data-val="${stateObj.quality}"]`);
+            if (btn) btn.classList.add('active');
+        }
+        if (stateObj.date) {
+            document.getElementById('v2-date').value = stateObj.date;
+        }
+    }
     // --- Database & ID Generation Logic ---
     const listScreen = document.getElementById('list-screen');
     const qrListContent = document.getElementById('qr-list-content');
