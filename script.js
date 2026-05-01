@@ -245,6 +245,33 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         return Array.from(values).join(' / ') || '-';
     }
+// --- QR Code Design Engine ---
+    function getQRConfig(designType, isBlock = false) {
+        const color = isBlock ? "#0055ff" : "#000000"; // Blau für Blöcke, Schwarz für Container
+        
+        let config = {
+            width: 70,
+            height: 70,
+            dotsOptions: { color: color, type: "square" },
+            cornersSquareOptions: { color: color, type: "square" },
+            cornersDotOptions: { color: color, type: "square" },
+            backgroundOptions: { color: "transparent" } // Transparent passt sich besser an die Cards an
+        };
+
+        if (designType === "dots") {
+            config.dotsOptions.type = "dots";
+            config.cornersSquareOptions.type = "dot";
+            config.cornersDotOptions.type = "dot";
+        } else if (designType === "rounded") {
+            config.dotsOptions.type = "rounded";
+            config.cornersSquareOptions.type = "extra-rounded";
+        } else if (designType === "mixed") {
+            config.dotsOptions.type = "classy";
+            config.cornersSquareOptions.type = "extra-rounded";
+            config.cornersDotOptions.type = "dot";
+        }
+        return config;
+    }
 
     function renderCards() {
         cardSlider.innerHTML = '';
@@ -279,16 +306,15 @@ document.addEventListener("DOMContentLoaded", () => {
             cardSlider.appendChild(bCard);
         });
 
-        // 3. QR Codes generieren (Nur die statischen IDs)
-        new QRCode(document.getElementById('qr-render-c'), {
-            text: masterState.id, width: 60, height: 60, colorDark: "#000000", colorLight: "#ffffff"
-        });
+        // 3. Premium QR Codes generieren
+        const containerConfig = getQRConfig(masterState.qrDesign, false);
+        containerConfig.data = masterState.id;
+        new QRCodeStyling(containerConfig).append(document.getElementById('qr-render-c'));
         
         childStates.forEach((child, index) => {
-            new QRCode(document.getElementById(`qr-render-b${index}`), {
-                // Blaue QR Codes für die Blöcke
-                text: child.id, width: 60, height: 60, colorDark: "#0055ff", colorLight: "#ffffff"
-            });
+            const blockConfig = getQRConfig(masterState.qrDesign, true); // Blöcke erben das Design
+            blockConfig.data = child.id;
+            new QRCodeStyling(blockConfig).append(document.getElementById(`qr-render-b${index}`));
         });
     }
 
@@ -339,19 +365,11 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('v2-date').value = stateObj.date;
         }
     }
-    // --- Database & ID Generation Logic ---
+ // --- Database & ID Generation Logic ---
     const listScreen = document.getElementById('list-screen');
     const qrListContent = document.getElementById('qr-list-content');
 
-    // Generiert z.B. "C-9A4F" oder "B-2X8K"
-    function generateID(prefix) {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let result = prefix + '-';
-        for (let i = 0; i < 6; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-    }
+
 
     // Lädt die lokale Datenbank (falls vorhanden) oder erstellt eine leere
     function loadDatabase() {
@@ -364,36 +382,29 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem('paperlogistics_db', JSON.stringify(db));
     }
 
-    // --- Create Button Logic ---
-    document.querySelector('.btn-create').addEventListener('click', () => {
-        const containerName = document.getElementById('container-name-input').value;
-        const containerID = generateID('C');
-        const creationDate = new Date().toLocaleDateString('de-DE'); // Heutiges Datum formatieren
-        
+    // --- Database & Confirm Button Logic (V2) ---
+    document.getElementById('btn-confirm-v2').addEventListener('click', () => {
+        // Übernimmt exakt das, was im Hintergrund-State gespeichert ist
         const containerData = {
-            id: containerID,
-            name: containerName,
-            date: creationDate,
+            id: masterState.id,
+            name: masterState.name,
+            date: masterState.date,
+            format: masterState.format,
+            quality: masterState.quality,
+            qrDesign: masterState.qrDesign, // Sichert das gewählte QR-Design
             blocks: []
         };
 
-        // Blöcke auslesen
-        for (let i = 0; i < 6; i++) {
-            const block = document.getElementById(`block-${i}`);
-            if (block.classList.contains('filled')) {
-                const dataValues = block.querySelectorAll('.data-value');
-                if (dataValues.length === 4) {
-                    containerData.blocks.push({
-                        id: generateID('B'),
-                        type: dataValues[0].textContent,
-                        date: dataValues[1].textContent,
-                        price: dataValues[2].textContent,
-                        quality: dataValues[3].textContent,
-                        status: 'available'
-                    });
-                }
-            }
-        }
+        // Die individuellen Werte (oder Vererbungen) der Blöcke abspeichern
+        childStates.forEach(child => {
+            containerData.blocks.push({
+                id: child.id,
+                format: child.format || masterState.format,
+                quality: child.quality || masterState.quality,
+                date: child.date || masterState.date,
+                status: 'available' // Wichtig für später, wenn wir verkaufen
+            });
+        });
 
         // In lokale Datenbank speichern
         const db = loadDatabase();
@@ -404,7 +415,7 @@ document.addEventListener("DOMContentLoaded", () => {
         newContainerScreen.classList.add('hidden');
         listScreen.classList.remove('hidden');
         
-        // Liste aktualisieren
+        // Liste rendern (Diese Funktion hast du bereits ganz unten in deiner Datei)
         renderListScreen();
     });
 
@@ -432,9 +443,16 @@ document.addEventListener("DOMContentLoaded", () => {
             // Linke Seite: Infos
             const infoDiv = document.createElement('div');
             infoDiv.className = 'list-item-info';
+        // Datum von YYYY-MM-DD in DD.MM.YYYY umwandeln für eine saubere Anzeige
+            let displayDate = container.date;
+            if (displayDate && displayDate.includes('-')) {
+                const parts = displayDate.split('-');
+                displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+            }
+
             infoDiv.innerHTML = `
                 <span class="list-item-title">${container.name}</span>
-                <span class="list-item-date">${container.date} &bull; ${container.blocks.length} Blocks</span>
+                <span class="list-item-date">${displayDate} &bull; ${container.blocks.length} Blocks</span>
             `;
             
             // Rechte Seite: QR Code Container
@@ -446,15 +464,13 @@ document.addEventListener("DOMContentLoaded", () => {
             listItem.appendChild(qrDiv);
             qrListContent.appendChild(listItem);
 
-            // Generiert den echten QR-Code basierend auf der Container-ID
-            new QRCode(document.getElementById(`qr-code-${index}`), {
-                text: container.id,
-                width: 60,
-                height: 60,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.L
-            });
+     // Generiert den Premium-QR-Code mit dem gespeicherten Design
+            const listQRConfig = getQRConfig(container.qrDesign || 'squares', false);
+            listQRConfig.data = container.id;
+            listQRConfig.width = 60;
+            listQRConfig.height = 60;
+            
+            new QRCodeStyling(listQRConfig).append(document.getElementById(`qr-code-${index}`));
         });
 
         // Wenn die Datenbank leer ist
