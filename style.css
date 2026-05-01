@@ -362,8 +362,7 @@ header {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 15px;
-    flex-grow: 1;
+    margin-bottom: 25px; /* Etwas mehr Luft zur Karte */
     overflow-y: auto;
     padding-right: 5px;
 }
@@ -441,11 +440,13 @@ header {
     background-color: #111;
     border: none;
     color: #fff;
-    padding: 10px;
+    padding: 12px; /* Mehr Volumen */
     border-radius: 8px;
     outline: none;
     font-family: inherit;
     text-align: center;
+    font-size: 1.05rem; /* Schrift deutlich präsenter */
+    font-weight: 500;
 }
 
 /* --- Live Card Slider --- */
@@ -469,7 +470,8 @@ header {
     scroll-snap-align: center;
     background-color: #1a1a1a;
     border-radius: 16px;
-    padding: 15px;
+    padding: 20px 15px; /* Mehr vertikales Volumen */
+    min-height: 130px; /* Zwingt die Karte, präsenter zu sein */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -477,7 +479,6 @@ header {
     border: 1px solid #333;
     transition: all 0.3s ease;
 }
-
 /* Blaues Theme für die Blöcke */
 .live-card.card-blue {
     background-color: #001122;
@@ -499,23 +500,24 @@ header {
 }
 
 .card-title {
-    font-size: 1.1rem;
+    font-size: 1.25rem; /* Titel größer */
     font-weight: bold;
     color: #fff;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .card-detail {
-    font-size: 0.8rem;
+    font-size: 0.9rem; /* Attribute größer */
     color: #aaa;
+    line-height: 1.4;
 }
 
 .card-qr-box {
     background-color: #fff;
-    padding: 5px;
+    padding: 6px;
     border-radius: 8px;
-    width: 70px;
-    height: 70px;
+    width: 85px; /* QR-Code wächst mit */
+    height: 85px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -542,9 +544,9 @@ header {
     border-radius: 12px;
     padding: 15px;
     flex: 1;
-    font-weight: 500;
+    font-weight: bold; /* An Confirm angepasst */
+    font-size: 1.1rem; /* An Confirm angepasst */
 }
-
 .btn-create {
     background-color: #fff;
     color: #000;
