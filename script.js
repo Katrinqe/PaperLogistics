@@ -267,4 +267,128 @@ document.addEventListener("DOMContentLoaded", () => {
             buttonElement.innerHTML = '<i class="fa-solid fa-pen"></i>';
         }
     }
+
+    // --- Database & ID Generation Logic ---
+    const listScreen = document.getElementById('list-screen');
+    const qrListContent = document.getElementById('qr-list-content');
+
+    // Generiert z.B. "C-9A4F" oder "B-2X8K"
+    function generateID(prefix) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = prefix + '-';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    // Lädt die lokale Datenbank (falls vorhanden) oder erstellt eine leere
+    function loadDatabase() {
+        const data = localStorage.getItem('paperlogistics_db');
+        return data ? JSON.parse(data) : { containers: [] };
+    }
+
+    // Speichert die lokale Datenbank
+    function saveDatabase(db) {
+        localStorage.setItem('paperlogistics_db', JSON.stringify(db));
+    }
+
+    // --- Create Button Logic ---
+    document.querySelector('.btn-create').addEventListener('click', () => {
+        const containerName = document.getElementById('container-name-input').value;
+        const containerID = generateID('C');
+        const creationDate = new Date().toLocaleDateString('de-DE'); // Heutiges Datum formatieren
+        
+        const containerData = {
+            id: containerID,
+            name: containerName,
+            date: creationDate,
+            blocks: []
+        };
+
+        // Blöcke auslesen
+        for (let i = 0; i < 6; i++) {
+            const block = document.getElementById(`block-${i}`);
+            if (block.classList.contains('filled')) {
+                const dataValues = block.querySelectorAll('.data-value');
+                if (dataValues.length === 4) {
+                    containerData.blocks.push({
+                        id: generateID('B'),
+                        type: dataValues[0].textContent,
+                        date: dataValues[1].textContent,
+                        price: dataValues[2].textContent,
+                        quality: dataValues[3].textContent,
+                        status: 'available'
+                    });
+                }
+            }
+        }
+
+        // In lokale Datenbank speichern
+        const db = loadDatabase();
+        db.containers.unshift(containerData); // unshift packt es ganz nach oben in die Liste
+        saveDatabase(db);
+
+        // Screens wechseln
+        newContainerScreen.classList.add('hidden');
+        listScreen.classList.remove('hidden');
+        
+        // Liste aktualisieren
+        renderListScreen();
+    });
+
+    // --- List Screen Navigation ---
+    document.getElementById('btn-list').addEventListener('click', () => {
+        homeScreen.classList.add('hidden');
+        listScreen.classList.remove('hidden');
+        renderListScreen();
+    });
+
+    window.closeListScreen = function() {
+        listScreen.classList.add('hidden');
+        homeScreen.classList.remove('hidden');
+    };
+
+    // --- List Rendering & QR Generation ---
+    function renderListScreen() {
+        qrListContent.innerHTML = ''; // Liste leeren
+        const db = loadDatabase();
+
+        db.containers.forEach((container, index) => {
+            const listItem = document.createElement('div');
+            listItem.className = 'list-item';
+            
+            // Linke Seite: Infos
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'list-item-info';
+            infoDiv.innerHTML = `
+                <span class="list-item-title">${container.name}</span>
+                <span class="list-item-date">${container.date} &bull; ${container.blocks.length} Blocks</span>
+            `;
+            
+            // Rechte Seite: QR Code Container
+            const qrDiv = document.createElement('div');
+            qrDiv.className = 'qr-code-display';
+            qrDiv.id = `qr-code-${index}`;
+
+            listItem.appendChild(infoDiv);
+            listItem.appendChild(qrDiv);
+            qrListContent.appendChild(listItem);
+
+            // Generiert den echten QR-Code basierend auf der Container-ID
+            new QRCode(document.getElementById(`qr-code-${index}`), {
+                text: container.id,
+                width: 60,
+                height: 60,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.L
+            });
+        });
+
+        // Wenn die Datenbank leer ist
+        if (db.containers.length === 0) {
+            qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Containers created yet.</p>';
+        }
+    }
 });
