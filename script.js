@@ -684,4 +684,83 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         
         renderListScreen(); // Liste ohne den gelöschten Container neu zeichnen
     });
+
+    // --- Scanner Logic ---
+    const scanScreen = document.getElementById('scan-screen');
+    let html5QrCode;
+
+    // Öffnet den Scanner
+    document.getElementById('btn-scan-qr').addEventListener('click', () => {
+        homeScreen.classList.add('hidden');
+        scanScreen.classList.remove('hidden');
+
+        // Initialisiert die Kamera im #reader div
+        html5QrCode = new Html5Qrcode("reader");
+        
+        const config = { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+        };
+
+        // Startet die Rückkamera ("environment")
+        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+        .catch((err) => {
+            alert("Kamera konnte nicht gestartet werden. Bitte erlaube den Kamera-Zugriff.");
+            closeScanScreen();
+        });
+    });
+
+    // Wird ausgeführt, sobald ein QR-Code erkannt wurde
+    function onScanSuccess(decodedText, decodedResult) {
+        // decodedText ist z.B. "C-X7B9A" oder "B-12345"
+        
+        html5QrCode.stop().then(() => {
+            scanScreen.classList.add('hidden');
+            
+            const db = loadDatabase();
+            let targetContainerIndex = -1;
+
+            // 1. Prüfen, ob es ein Container-QR-Code ist
+            targetContainerIndex = db.containers.findIndex(c => c.id === decodedText);
+
+            // 2. Falls nicht gefunden: Prüfen, ob es ein Block-QR-Code ist
+            if (targetContainerIndex === -1) {
+                db.containers.forEach((container, index) => {
+                    if (container.blocks && container.blocks.some(b => b.id === decodedText)) {
+                        targetContainerIndex = index;
+                    }
+                });
+            }
+
+            // 3. Navigation ausführen
+            if (targetContainerIndex !== -1) {
+                // Container gefunden -> Detail Screen öffnen
+                openDetailScreen(targetContainerIndex);
+            } else {
+                // Code gehört nicht zum System oder wurde gelöscht
+                alert(`QR-Code (${decodedText}) nicht in der Datenbank gefunden.`);
+                homeScreen.classList.remove('hidden');
+            }
+            
+        }).catch((err) => {
+            console.error("Scanner konnte nicht gestoppt werden.", err);
+        });
+    }
+
+    // Schließt den Scanner manuell
+    window.closeScanScreen = function() {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                scanScreen.classList.add('hidden');
+                homeScreen.classList.remove('hidden');
+            }).catch(err => {
+                scanScreen.classList.add('hidden');
+                homeScreen.classList.remove('hidden');
+            });
+        } else {
+            scanScreen.classList.add('hidden');
+            homeScreen.classList.remove('hidden');
+        }
+    };
 });
