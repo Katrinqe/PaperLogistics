@@ -825,7 +825,7 @@ header {
     transform: scale(0.95);
 }
 
-/* --- Scan Screen --- */
+/* --- Scan Screen (ZXing Engine) --- */
 .scan-header {
     display: flex;
     align-items: center;
@@ -840,31 +840,44 @@ header {
 }
 
 .scanner-container {
+    position: relative;
     width: 100%;
     border-radius: 16px;
     overflow: hidden;
     background-color: #000;
     border: 1px solid #333;
-    /* Wir zwingen hier kein Format mehr auf, die Bibliothek regelt die Höhe selbst */
+    aspect-ratio: 1 / 1; /* Zurück zum Quadrat */
 }
 
-/* Die Bibliothek erzeugt eigene Elemente, die wir hiermit übersteuern */
-#reader {
+#video-preview {
     width: 100%;
-    border: none !important;
+    height: 100%;
+    object-fit: cover; /* Füllt das Quadrat aus, ohne zu verzerren */
 }
 
-#reader video {
-    width: 100% !important;
-    height: auto !important; /* Wichtig, damit das Video nicht gestaucht wird */
-    object-fit: cover;
+/* Das UI-Overlay (Fokus-Rahmen) */
+.scan-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+.scan-box {
+    width: 60%;
+    height: 60%;
+    border: 2px solid #0055ff;
     border-radius: 16px;
+    /* Dunkelt den Bereich außerhalb des Rahmens massiv ab */
+    box-shadow: 0 0 0 100vw rgba(0, 0, 0, 0.65); 
+    position: relative;
 }
 
-/* Versteckt hässliche Standard-Rahmen der Scanner-Lib */
-#reader__scan_region {
-    background-color: #000;
+/* Industrie-Ecken für das professionelle Feeling */
+.scan-box::before, .scan-box::after {
+    content: ''; position: absolute; width: 30px; height: 30px; border-color: #fff; border-style: solid;
 }
-#reader__dashboard_section_csr span {
-    color: #fff !important;
-}
+.scan-box::before { top: -2px; left: -2px; border-width: 4px 0 0 4px; border-radius: 16px 0 0 0; }
+.scan-box::after { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; border-radius: 0 0 16px 0; }
