@@ -194,11 +194,12 @@
             </div>
 
             <!-- Action Bar (Platzhalter-Funktionen) -->
+           <!-- Action Bar -->
             <div class="detail-actions">
-                <button class="action-btn" aria-label="Bearbeiten"><i class="fa-solid fa-pen"></i></button>
+                <button class="action-btn" id="btn-edit-container" aria-label="Bearbeiten"><i class="fa-solid fa-pen"></i></button>
                 <button class="action-btn" aria-label="Umlagern"><i class="fa-solid fa-right-left"></i></button>
                 <button class="action-btn" aria-label="Verkaufen"><i class="fa-solid fa-cart-shopping"></i></button>
-                <button class="action-btn btn-danger" aria-label="Löschen"><i class="fa-solid fa-trash"></i></button>
+                <button class="action-btn btn-danger" id="btn-delete-container" aria-label="Löschen"><i class="fa-solid fa-trash"></i></button>
             </div>
         </div>
 
@@ -237,7 +238,16 @@
                 </div>
             </div>
         </div>
-
+<!-- === DELETE CONFIRMATION POPUP === -->
+        <div id="delete-popup" class="screen hidden">
+            <div class="popup-content">
+                <h3 class="popup-title">You sure you wanna delete?</h3>
+                <div class="popup-actions">
+                    <button id="btn-popup-no" class="btn-popup-no">No</button>
+                    <button id="btn-popup-yes" class="btn-popup-yes">Yes</button>
+                </div>
+            </div>
+        </div>
     </main>
 <!-- Externe Bibliothek für QR-Codes -->
     <!-- Externe Bibliothek für Premium QR-Codes (qr-code-styling) -->
