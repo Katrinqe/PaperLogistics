@@ -126,14 +126,31 @@ document.addEventListener("DOMContentLoaded", () => {
         return res;
     }
 
+// Hilfsfunktion: Berechnet den nächsten freien Container-Namen
+    function getNextContainerName() {
+        const db = loadDatabase();
+        let maxNumber = 0;
+        
+        db.containers.forEach(c => {
+            // Sucht nach dem Muster "Container_XXX" (ignoriert manuell völlig anders benannte Container)
+            const match = c.name.match(/^Container_(\d+)$/i);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxNumber) maxNumber = num;
+            }
+        });
+        
+        return `Container_${String(maxNumber + 1).padStart(3, '0')}`;
+    }
+    
     // Öffnen des Screens
     document.getElementById('btn-new-qr').addEventListener('click', () => {
         homeScreen.classList.add('hidden');
         newContainerScreen.classList.remove('hidden');
         
-        masterState = { 
+     masterState = { 
             id: generateUUID('C'), 
-            name: 'Container_001', 
+            name: getNextContainerName(), // Nutzt ab sofort die intelligente Berechnung
             format: '', 
             blocks: 0, 
             price: '', 
@@ -364,8 +381,19 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem('paperlogistics_db', JSON.stringify(db));
     }
 
-  // --- Database & Confirm Button Logic (V2) ---
+// --- Database & Confirm Button Logic (V2) ---
     document.getElementById('btn-confirm-v2').addEventListener('click', () => {
+        const db = loadDatabase();
+
+        // Sicherheitsprüfung: Darf der Name existieren?
+        // Trim() entfernt versehentliche Leerzeichen, toLowerCase() macht die Prüfung unabhängig von Groß-/Kleinschreibung
+        const nameExists = db.containers.some(c => c.name.trim().toLowerCase() === masterState.name.trim().toLowerCase());
+        
+        if (nameExists) {
+            alert(`Der Name "${masterState.name}" wird bereits verwendet. Bitte wähle einen eindeutigen Namen für den Container.`);
+            return; // Stoppt die Funktion hier sofort. Es wird nichts gespeichert!
+        }
+
         const containerData = {
             id: masterState.id,
             name: masterState.name,
@@ -388,7 +416,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
-        const db = loadDatabase();
         db.containers.unshift(containerData); 
         saveDatabase(db);
 
