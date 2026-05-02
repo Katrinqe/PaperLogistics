@@ -2,13 +2,21 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    /* Verhindert das blaue Aufleuchten beim Tippen auf Handys */
+    -webkit-tap-highlight-color: transparent; 
 }
 
-body {
-    background-color: #000000;
-    color: #ffffff;
-    overflow-x: hidden;
+html, body {
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    
+    /* --- HIER IST DER MAGISCHE SCHLOSS-MECHANISMUS --- */
+    overflow: hidden; /* Verbietet das Scrollen der gesamten Seite */
+    overscroll-behavior-y: none; /* Tötet den Gummiband-Effekt (Bounce) auf iOS und Android */
+    position: fixed; /* Zwingt iOS Safari extrem hart, den Bildschirm nicht zu bewegen */
 }
 
 /* Splash Screen */
