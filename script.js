@@ -143,14 +143,16 @@ document.addEventListener("DOMContentLoaded", () => {
         return `Container_${String(maxNumber + 1).padStart(3, '0')}`;
     }
     
-    // Öffnen des Screens
+// Öffnen des Screens (NEU ERSTELLEN)
     document.getElementById('btn-new-qr').addEventListener('click', () => {
         homeScreen.classList.add('hidden');
         newContainerScreen.classList.remove('hidden');
         
-     masterState = { 
+        isEditMode = false; // WICHTIG: Hier gehört der Reset-Schalter hin!
+        
+        masterState = { 
             id: generateUUID('C'), 
-            name: getNextContainerName(), // Nutzt ab sofort die intelligente Berechnung
+            name: getNextContainerName(), 
             format: '', 
             blocks: 0, 
             price: '', 
@@ -162,8 +164,13 @@ document.addEventListener("DOMContentLoaded", () => {
         
         document.getElementById('v2-name').value = masterState.name;
         document.getElementById('v2-date').value = masterState.date;
+        
         resetToggles();
         renderCards();
+        
+        // Zwingt die UI in den weißen Container-Modus und spult den Slider zurück
+        updateUIFromScroll(-1);
+        document.getElementById('card-slider').scrollLeft = 0;
     });
 
 window.closeNewContainerScreen = function() {
@@ -447,10 +454,9 @@ window.closeNewContainerScreen = function() {
         renderListScreen();
     });
 
-    // --- List Screen Navigation ---
+ // --- List Screen Navigation ---
     document.getElementById('btn-list').addEventListener('click', () => {
         homeScreen.classList.add('hidden');
-        isEditMode = false; // Stellt sicher, dass es eine Neu-Anlage ist
         listScreen.classList.remove('hidden');
         renderListScreen();
     });
