@@ -410,42 +410,53 @@ document.addEventListener("DOMContentLoaded", () => {
         homeScreen.classList.remove('hidden');
     };
 
-    // --- List Rendering & QR Generation ---
+// --- List Rendering & QR Generation ---
     function renderListScreen() {
         qrListContent.innerHTML = ''; 
         const db = loadDatabase();
 
         db.containers.forEach((container, index) => {
-            const listItem = document.createElement('div');
-            listItem.className = 'list-item';
-            
-            const infoDiv = document.createElement('div');
-            infoDiv.className = 'list-item-info';
-            
+            // Wir bauen die Aggregations-Logik (z.B. "High / Low") für die Liste nach
+            function getListAggregated(key) {
+                let values = new Set();
+                if (container[key]) values.add(container[key]);
+                if (container.blocks) {
+                    container.blocks.forEach(block => {
+                        if (block[key]) values.add(block[key]);
+                    });
+                }
+                return Array.from(values).join(' / ') || '-';
+            }
+
+            // Datum formatieren
             let displayDate = container.date;
             if (displayDate && displayDate.includes('-')) {
                 const parts = displayDate.split('-');
                 displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
             }
 
-            infoDiv.innerHTML = `
-                <span class="list-item-title">${container.name}</span>
-                <span class="list-item-date">${displayDate} &bull; ${container.blocks.length} Blocks</span>
+            // Wir nutzen exakt die .live-card Klasse aus dem Bearbeiten-Screen
+            const listItem = document.createElement('div');
+            listItem.className = 'live-card'; 
+            
+            listItem.innerHTML = `
+                <div class="card-info">
+                    <div class="card-title">${container.name}</div>
+                    <div class="card-detail">Format: ${getListAggregated('format')}</div>
+                    <div class="card-detail">Price: ${getListAggregated('price')}</div>
+                    <div class="card-detail">Quality: ${getListAggregated('quality')}</div>
+                    <div class="card-detail">Date: ${displayDate}</div>
+                </div>
+                <div class="card-qr-box" id="qr-code-${index}"></div>
             `;
             
-            const qrDiv = document.createElement('div');
-            qrDiv.className = 'qr-code-display';
-            qrDiv.id = `qr-code-${index}`;
-
-            listItem.appendChild(infoDiv);
-            listItem.appendChild(qrDiv);
             qrListContent.appendChild(listItem);
 
-            // Generiert den Premium-QR-Code im klassischen Design für die Liste
+            // Generiert den Premium-QR-Code in der exakt gleichen Größe wie im Editor (85x85)
             const listQRConfig = getQRConfig(false);
             listQRConfig.data = container.id;
-            listQRConfig.width = 60;
-            listQRConfig.height = 60;
+            listQRConfig.width = 85; 
+            listQRConfig.height = 85;
             
             new QRCodeStyling(listQRConfig).append(document.getElementById(`qr-code-${index}`));
         });
