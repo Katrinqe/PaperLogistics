@@ -685,16 +685,36 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         renderListScreen(); // Liste ohne den gelöschten Container neu zeichnen
     });
 
-    // --- Scanner Logic ---
+// --- Scanner Logic ---
     const scanScreen = document.getElementById('scan-screen');
-    let html5QrCode;
+    let html5QrCode = null;
+
+    // Hilfsfunktion: Kamera stoppen und das HTML von alten Video-Resten (schwarze Balken) säubern
+    function stopScanner(callback) {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                // Gnadenloser Reset des DOMs, damit beim nächsten Mal alles frisch ist
+                document.getElementById('reader').innerHTML = ''; 
+                html5QrCode = null;
+                if(callback) callback();
+            }).catch(err => {
+                document.getElementById('reader').innerHTML = '';
+                html5QrCode = null;
+                if(callback) callback();
+            });
+        } else {
+            if(callback) callback();
+        }
+    }
 
     // Öffnet den Scanner
     document.getElementById('btn-scan-qr').addEventListener('click', () => {
         homeScreen.classList.add('hidden');
         scanScreen.classList.remove('hidden');
 
-        // Initialisiert die Kamera im #reader div
+        // Sicherheitshalber aufräumen, bevor wir neu starten
+        document.getElementById('reader').innerHTML = '';
+        
         html5QrCode = new Html5Qrcode("reader");
         
         const config = { 
@@ -703,19 +723,20 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
             aspectRatio: 1.0
         };
 
-        // Startet die Rückkamera ("environment")
         html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
         .catch((err) => {
             alert("Kamera konnte nicht gestartet werden. Bitte erlaube den Kamera-Zugriff.");
-            closeScanScreen();
+            stopScanner(() => {
+                scanScreen.classList.add('hidden');
+                homeScreen.classList.remove('hidden');
+            });
         });
     });
 
     // Wird ausgeführt, sobald ein QR-Code erkannt wurde
     function onScanSuccess(decodedText, decodedResult) {
-        // decodedText ist z.B. "C-X7B9A" oder "B-12345"
-        
-        html5QrCode.stop().then(() => {
+        // Stoppt die Kamera und putzt das HTML, BEVOR die Navigation ausgeführt wird
+        stopScanner(() => {
             scanScreen.classList.add('hidden');
             
             const db = loadDatabase();
@@ -735,32 +756,19 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
 
             // 3. Navigation ausführen
             if (targetContainerIndex !== -1) {
-                // Container gefunden -> Detail Screen öffnen
                 openDetailScreen(targetContainerIndex);
             } else {
-                // Code gehört nicht zum System oder wurde gelöscht
-                alert(`QR-Code (${decodedText}) nicht in der Datenbank gefunden.`);
+                alert(`QR-Code (${decodedText}) gehört zu keinem Container im System.`);
                 homeScreen.classList.remove('hidden');
             }
-            
-        }).catch((err) => {
-            console.error("Scanner konnte nicht gestoppt werden.", err);
         });
     }
 
-    // Schließt den Scanner manuell
+    // Schließt den Scanner manuell (Back Button)
     window.closeScanScreen = function() {
-        if (html5QrCode) {
-            html5QrCode.stop().then(() => {
-                scanScreen.classList.add('hidden');
-                homeScreen.classList.remove('hidden');
-            }).catch(err => {
-                scanScreen.classList.add('hidden');
-                homeScreen.classList.remove('hidden');
-            });
-        } else {
+        stopScanner(() => {
             scanScreen.classList.add('hidden');
             homeScreen.classList.remove('hidden');
-        }
+        });
     };
 });
