@@ -716,18 +716,21 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         });
     }
 
-    // Öffnet den Scanner
+// Öffnet den Scanner
     document.getElementById('btn-scan-qr').addEventListener('click', async () => {
+        // Guard: Verhindert mehrfache Starts, wenn der Button gespammt wird
+        if (html5QrCode) return;
+
         homeScreen.classList.add('hidden');
         scanScreen.classList.remove('hidden');
 
-        isScanning = false; // Reset des Locks beim Öffnen
+        isScanning = false; // Reset des Locks beim sauberen Öffnen
 
-        // Verhindert doppelte Instanzen komplett
         await stopScanner();
 
-        // Sauberer Async-Delay (hält den Flow deterministisch)
-        await new Promise(res => setTimeout(res, 200));
+        // Benannte Konstante für sauberen Code
+        const CAMERA_RESTART_DELAY = 200;
+        await new Promise(res => setTimeout(res, CAMERA_RESTART_DELAY));
 
         html5QrCode = new Html5Qrcode("reader");
         
@@ -737,13 +740,19 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
             aspectRatio: 1.0
         };
 
+        // Versuch 1: Rückkamera ("environment")
         html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
         .catch(async (err) => {
-            alert("Kamera konnte nicht gestartet werden. Bitte erlaube den Kamera-Zugriff.");
-            // Sauberes Fehlerhandling ohne Doppelaufrufe
-            await stopScanner();
-            scanScreen.classList.add('hidden');
-            homeScreen.classList.remove('hidden');
+            console.warn("Rückkamera nicht verfügbar, versuche Fallback...", err);
+            
+            // Versuch 2: Fallback auf Frontkamera oder Desktop-Webcam ("user")
+            html5QrCode.start({ facingMode: "user" }, config, onScanSuccess)
+            .catch(async (fallbackErr) => {
+                alert("Kamera konnte nicht gestartet werden. Bitte erlaube den Kamera-Zugriff.");
+                await stopScanner();
+                scanScreen.classList.add('hidden');
+                homeScreen.classList.remove('hidden');
+            });
         });
     });
 
@@ -786,7 +795,7 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
             homeScreen.classList.remove('hidden');
         }
 
-        isScanning = false; // Lock sicherheitshalber wieder freigeben
+       
     }
 
     // Schließt den Scanner manuell (Back Button)
