@@ -171,6 +171,37 @@
             </div>
         </div>
 
+        <!-- === SCREEN 4: DETAIL === -->
+        <div id="detail-screen" class="screen hidden">
+            <div class="detail-header">
+                <button class="back-arrow" onclick="closeDetailScreen()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2 id="detail-title">DETAILS</h2>
+                <div style="width: 30px;"></div> <!-- Unsichtbarer Platzhalter für perfekte Flex-Zentrierung -->
+            </div>
+            
+            <!-- Die 1:1 Card wird hier injiziert -->
+            <div id="detail-card-container">
+            </div>
+
+            <!-- Historie -->
+            <div class="history-section">
+                <h3 class="history-title">History</h3>
+                <div class="history-list" id="detail-history-list">
+                    <!-- JS generiert hier die Historien-Einträge -->
+                </div>
+            </div>
+
+            <!-- Action Bar (Platzhalter-Funktionen) -->
+            <div class="detail-actions">
+                <button class="action-btn" aria-label="Bearbeiten"><i class="fa-solid fa-pen"></i></button>
+                <button class="action-btn" aria-label="Umlagern"><i class="fa-solid fa-right-left"></i></button>
+                <button class="action-btn" aria-label="Verkaufen"><i class="fa-solid fa-cart-shopping"></i></button>
+                <button class="action-btn btn-danger" aria-label="Löschen"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        </div>
+
         <!-- === MODAL (Pop-Up) === -->
         <div id="data-modal" class="modal hidden">
             <div class="modal-content">
