@@ -689,21 +689,23 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
     const scanScreen = document.getElementById('scan-screen');
     let html5QrCode = null;
 
-    // Hilfsfunktion: Kamera stoppen und das HTML von alten Video-Resten (schwarze Balken) säubern
+// Hilfsfunktion: Kamera stoppen, Canvas zerstören und HTML säubern
     function stopScanner(callback) {
         if (html5QrCode) {
             html5QrCode.stop().then(() => {
-                // Gnadenloser Reset des DOMs, damit beim nächsten Mal alles frisch ist
-                document.getElementById('reader').innerHTML = ''; 
-                html5QrCode = null;
-                if(callback) callback();
-            }).catch(err => {
+                return html5QrCode.clear(); // 🔥 WICHTIG: Zerstört den unsichtbaren Video-Stream
+            }).then(() => {
                 document.getElementById('reader').innerHTML = '';
                 html5QrCode = null;
-                if(callback) callback();
+                if (callback) callback();
+            }).catch(err => {
+                console.warn("Scanner stop error:", err);
+                document.getElementById('reader').innerHTML = '';
+                html5QrCode = null;
+                if (callback) callback();
             });
         } else {
-            if(callback) callback();
+            if (callback) callback();
         }
     }
 
