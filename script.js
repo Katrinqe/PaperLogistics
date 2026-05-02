@@ -688,15 +688,19 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
 // --- Scanner Logic ---
     const scanScreen = document.getElementById('scan-screen');
     let html5QrCode = null;
-    let isScanning = false; // Verhindert mehrfache Scans im Millisekundenbereich
+    let isScanning = false; 
+    let isStopping = false; // 🔥 NEU: Der Lock für den sauberen Abbau
 
     // Hilfsfunktion: Promise-basierter, kugelsicherer Cleanup
     function stopScanner() {
         return new Promise((resolve) => {
-            if (!html5QrCode) {
+            // Guard: Wenn nichts da ist oder wir schon stoppen -> sofort abbrechen
+            if (!html5QrCode || isStopping) {
                 resolve();
                 return;
             }
+
+            isStopping = true;
 
             html5QrCode.stop()
                 .catch(err => {
@@ -709,8 +713,10 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
                     console.warn("Clear error:", err);
                 })
                 .finally(() => {
-                    document.getElementById('reader').innerHTML = '';
+                    // 🔥 Robusterer DOM Reset anstatt innerHTML = ''
+                    document.getElementById('reader').replaceChildren();
                     html5QrCode = null;
+                    isStopping = false;
                     resolve();
                 });
         });
@@ -756,11 +762,18 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         });
     });
 
-    // Wird ausgeführt, sobald ein QR-Code erkannt wurde
+// Wird ausgeführt, sobald ein QR-Code erkannt wurde
     async function onScanSuccess(decodedText, decodedResult) {
         // Lock-Mechanismus gegen "Ghost-Scans"
         if (isScanning) return;
         isScanning = true;
+
+        // 🔥 KRITISCH: Scanner SOFORT pausieren, bevor irgendein async läuft
+        try {
+            await html5QrCode.pause();
+        } catch(e) {
+            console.warn("Could not pause scanner:", e);
+        }
 
         if (navigator.vibrate) {
             navigator.vibrate(50);
