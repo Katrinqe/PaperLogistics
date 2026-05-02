@@ -705,7 +705,7 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         }
     }
 
-    // Öffnet den Scanner
+// Öffnet den Scanner
     document.getElementById('btn-scan-qr').addEventListener('click', async () => {
         if (isScanning) return; // Guard
         isScanning = true;
@@ -713,24 +713,17 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         homeScreen.classList.add('hidden');
         scanScreen.classList.remove('hidden');
 
-        try {
-            // Holt die Liste aller Kameras
-            const videoInputDevices = await codeReader.listVideoInputDevices();
-            
-            // Standardmäßig erste Kamera nehmen
-            let selectedDeviceId = videoInputDevices[0].deviceId;
-            
-            // Intelligent: Suche explizit nach Rückkamera ("back" oder "environment")
-            const backCamera = videoInputDevices.find(dev => 
-                dev.label.toLowerCase().includes('back') || 
-                dev.label.toLowerCase().includes('environment')
-            );
-            if (backCamera) {
-                selectedDeviceId = backCamera.deviceId;
-            }
+        // WICHTIG für iOS: Zwingt Apple, das Video nicht im Vollbild-Player zu öffnen
+        document.getElementById('video-preview').setAttribute('playsinline', 'true');
 
-            // Startet den Scan-Loop
-            codeReader.decodeFromVideoDevice(selectedDeviceId, 'video-preview', async (result, err) => {
+        try {
+            // Der harte OS-Befehl: Zwingt das Gerät zur Rückkamera ("environment"), ohne auf Namen zu achten
+            const constraints = {
+                video: { facingMode: "environment" }
+            };
+
+            // Startet den Scan-Loop direkt mit dem Hardware-Zwang
+            codeReader.decodeFromConstraints(constraints, 'video-preview', async (result, err) => {
                 if (result) {
                     // TREFFER!
                     if (!isScanning) return; // Doppel-Scan Guard
@@ -770,7 +763,7 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
                     }
                 }
                 
-                // Ignoriert harmlose Fehler (wenn in einem Frame kein Code gefunden wurde)
+                // Ignoriert harmlose Fehler (wenn im aktuellen Frame kein Code gefunden wurde)
                 if (err && !(err instanceof ZXing.NotFoundException)) {
                     console.warn("ZXing Reader Error:", err);
                 }
