@@ -824,3 +824,46 @@ header {
 .btn-popup-no:active, .btn-popup-yes:active {
     transform: scale(0.95);
 }
+
+/* --- Scan Screen --- */
+.scan-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.scan-header h2 {
+    font-size: 1.1rem;
+    color: #fff;
+    letter-spacing: 2px;
+}
+
+.scanner-container {
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    background-color: #111;
+    border: 1px solid #333;
+    /* Ein quadratisches Format für den Kamerasucher erzwingen */
+    aspect-ratio: 1 / 1; 
+}
+
+/* Die Bibliothek erzeugt eigene Elemente, die wir hiermit übersteuern */
+#reader {
+    width: 100%;
+    border: none !important;
+}
+
+#reader video {
+    object-fit: cover;
+    border-radius: 16px;
+}
+
+/* Versteckt hässliche Standard-Rahmen der Scanner-Lib */
+#reader__scan_region {
+    background-color: #000;
+}
+#reader__dashboard_section_csr span {
+    color: #fff !important;
+}
