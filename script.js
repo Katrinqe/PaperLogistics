@@ -166,9 +166,15 @@ document.addEventListener("DOMContentLoaded", () => {
         renderCards();
     });
 
-    window.closeNewContainerScreen = function() {
+window.closeNewContainerScreen = function() {
         newContainerScreen.classList.add('hidden');
-        homeScreen.classList.remove('hidden');
+        if (isEditMode) {
+            // Wenn wir beim Bearbeiten abbrechen, zurück zu den Details (Änderungen verwerfen)
+            detailScreen.classList.remove('hidden'); 
+        } else {
+            // Wenn wir beim Neu anlegen abbrechen, zurück zum Home-Screen
+            homeScreen.classList.remove('hidden'); 
+        }
     };
 
     // --- UI Event Listeners für Eingaben ---
@@ -388,13 +394,15 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btn-confirm-v2').addEventListener('click', () => {
         const db = loadDatabase();
 
-        // Sicherheitsprüfung: Darf der Name existieren?
-        // Trim() entfernt versehentliche Leerzeichen, toLowerCase() macht die Prüfung unabhängig von Groß-/Kleinschreibung
-        const nameExists = db.containers.some(c => c.name.trim().toLowerCase() === masterState.name.trim().toLowerCase());
+        // Namens-Check: Ignoriert beim Editieren den Namen des aktuellen Containers
+        const nameExists = db.containers.some((c, index) => {
+            if (isEditMode && index === currentDetailIndex) return false; 
+            return c.name.trim().toLowerCase() === masterState.name.trim().toLowerCase();
+        });
         
         if (nameExists) {
-            alert(`Der Name "${masterState.name}" wird bereits verwendet. Bitte wähle einen eindeutigen Namen für den Container.`);
-            return; // Stoppt die Funktion hier sofort. Es wird nichts gespeichert!
+            alert(`Der Name "${masterState.name}" wird bereits verwendet. Bitte wähle einen eindeutigen Namen.`);
+            return;
         }
 
         const containerData = {
@@ -415,15 +423,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 price: child.price || masterState.price,
                 quality: child.quality || masterState.quality,
                 date: child.date || masterState.date,
-                status: 'available' 
+                status: child.status || 'available' 
             });
         });
 
-        db.containers.unshift(containerData); 
-        saveDatabase(db);
-
-        newContainerScreen.classList.add('hidden');
-        listScreen.classList.remove('hidden');
+        if (isEditMode) {
+            // Überschreibt den exakten Eintrag an der bekannten Position
+            db.containers[currentDetailIndex] = containerData;
+            saveDatabase(db);
+            
+            newContainerScreen.classList.add('hidden');
+            detailScreen.classList.remove('hidden');
+            openDetailScreen(currentDetailIndex); // Lädt die Detail-Ansicht direkt mit den neuen Daten neu
+        } else {
+            // Legt einen ganz neuen Container an
+            db.containers.unshift(containerData); 
+            saveDatabase(db);
+            
+            newContainerScreen.classList.add('hidden');
+            listScreen.classList.remove('hidden');
+        }
         
         renderListScreen();
     });
@@ -431,6 +450,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- List Screen Navigation ---
     document.getElementById('btn-list').addEventListener('click', () => {
         homeScreen.classList.add('hidden');
+        isEditMode = false; // Stellt sicher, dass es eine Neu-Anlage ist
         listScreen.classList.remove('hidden');
         renderListScreen();
     });
@@ -500,9 +520,12 @@ const listItem = document.createElement('div');
             qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Containers created yet.</p>';
         }
     }
+// --- Detail Screen & Edit Logic ---
+    let currentDetailIndex = -1;
+    let isEditMode = false;
 
-    // --- Detail Screen Logic ---
     window.openDetailScreen = function(containerIndex) {
+        currentDetailIndex = containerIndex;
         const db = loadDatabase();
         const container = db.containers[containerIndex];
         
@@ -568,4 +591,77 @@ const listItem = document.createElement('div');
         detailScreen.classList.add('hidden');
         listScreen.classList.remove('hidden');
     };
+    // --- Edit & Delete Actions ---
+    const deletePopup = document.getElementById('delete-popup');
+
+    // BEARBEITEN: Läd die Daten in den Editor
+    document.getElementById('btn-edit-container').addEventListener('click', () => {
+        const db = loadDatabase();
+        const container = db.containers[currentDetailIndex];
+        if (!container) return;
+
+        isEditMode = true;
+
+        // MasterState mit den existierenden Daten füllen
+        masterState = {
+            id: container.id,
+            name: container.name,
+            format: container.format || '',
+            blocks: container.blocks ? container.blocks.length : 0,
+            price: container.price || '',
+            quality: container.quality || '',
+            date: container.date || ''
+        };
+
+        // ChildStates mit den existierenden Blöcken füllen
+        childStates = [];
+        if (container.blocks) {
+            container.blocks.forEach(b => {
+                childStates.push({
+                    id: b.id,
+                    name: b.name,
+                    format: b.format,
+                    price: b.price,
+                    quality: b.quality,
+                    date: b.date,
+                    status: b.status || 'available'
+                });
+            });
+        }
+
+        currentActiveIndex = -1; // Startet wieder auf der Master-Card
+        document.getElementById('v2-name').value = masterState.name;
+        document.getElementById('v2-date').value = masterState.date;
+        
+        resetToggles();
+        renderCards();
+
+        // Screen Wechsel
+        detailScreen.classList.add('hidden');
+        newContainerScreen.classList.remove('hidden');
+    });
+
+    // LÖSCHEN POPUP ÖFFNEN
+    document.getElementById('btn-delete-container').addEventListener('click', () => {
+        deletePopup.classList.remove('hidden');
+    });
+
+    // LÖSCHEN ABBRECHEN (No)
+    document.getElementById('btn-popup-no').addEventListener('click', () => {
+        deletePopup.classList.add('hidden');
+    });
+
+    // LÖSCHEN BESTÄTIGEN (Yes)
+    document.getElementById('btn-popup-yes').addEventListener('click', () => {
+        const db = loadDatabase();
+        // Schneidet exakt diesen einen Container aus dem Array heraus
+        db.containers.splice(currentDetailIndex, 1);
+        saveDatabase(db);
+
+        deletePopup.classList.add('hidden');
+        detailScreen.classList.add('hidden');
+        listScreen.classList.remove('hidden');
+        
+        renderListScreen(); // Liste ohne den gelöschten Container neu zeichnen
+    });
 });
