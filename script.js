@@ -688,6 +688,7 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
 // --- Scanner Logic ---
     const scanScreen = document.getElementById('scan-screen');
     let html5QrCode = null;
+    let isScanning = false; // Verhindert mehrfache Scans im Millisekundenbereich
 
     // Hilfsfunktion: Promise-basierter, kugelsicherer Cleanup
     function stopScanner() {
@@ -720,35 +721,42 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         homeScreen.classList.add('hidden');
         scanScreen.classList.remove('hidden');
 
-        // 🔥 Verhindert doppelte Instanzen komplett
+        isScanning = false; // Reset des Locks beim Öffnen
+
+        // Verhindert doppelte Instanzen komplett
         await stopScanner();
 
-        // 🔄 Mini-Delay für den absolut sauberen Restart ohne Kamera-Konflikte
-        setTimeout(() => {
-            html5QrCode = new Html5Qrcode("reader");
-            
-            const config = { 
-                fps: 10, 
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
-            };
+        // Sauberer Async-Delay (hält den Flow deterministisch)
+        await new Promise(res => setTimeout(res, 200));
 
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-            .catch((err) => {
-                alert("Kamera konnte nicht gestartet werden. Bitte erlaube den Kamera-Zugriff.");
-                closeScanScreen();
-            });
-        }, 200);
+        html5QrCode = new Html5Qrcode("reader");
+        
+        const config = { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+        };
+
+        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+        .catch(async (err) => {
+            alert("Kamera konnte nicht gestartet werden. Bitte erlaube den Kamera-Zugriff.");
+            // Sauberes Fehlerhandling ohne Doppelaufrufe
+            await stopScanner();
+            scanScreen.classList.add('hidden');
+            homeScreen.classList.remove('hidden');
+        });
     });
 
     // Wird ausgeführt, sobald ein QR-Code erkannt wurde
     async function onScanSuccess(decodedText, decodedResult) {
-        // 🔔 Haptisches Feedback: Gerät vibriert kurz für echtes App-Feeling (nur unterstützt auf Mobile)
+        // Lock-Mechanismus gegen "Ghost-Scans"
+        if (isScanning) return;
+        isScanning = true;
+
         if (navigator.vibrate) {
             navigator.vibrate(50);
         }
 
-        // Kamera asynchron und kugelsicher stoppen
         await stopScanner();
         
         scanScreen.classList.add('hidden');
@@ -759,13 +767,15 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         // 1. Prüfen, ob es ein Container-QR-Code ist
         targetContainerIndex = db.containers.findIndex(c => c.id === decodedText);
 
-        // 2. Falls nicht gefunden: Prüfen, ob es ein Block-QR-Code ist
+        // 2. Falls nicht gefunden: Performante Block-Suche (bricht ab, sobald gefunden)
         if (targetContainerIndex === -1) {
-            db.containers.forEach((container, index) => {
+            for (let i = 0; i < db.containers.length; i++) {
+                const container = db.containers[i];
                 if (container.blocks && container.blocks.some(b => b.id === decodedText)) {
-                    targetContainerIndex = index;
+                    targetContainerIndex = i;
+                    break; // Spart Performance, beendet Schleife sofort
                 }
-            });
+            }
         }
 
         // 3. Navigation ausführen
@@ -775,6 +785,8 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
             alert(`QR-Code (${decodedText}) gehört zu keinem Container im System.`);
             homeScreen.classList.remove('hidden');
         }
+
+        isScanning = false; // Lock sicherheitshalber wieder freigeben
     }
 
     // Schließt den Scanner manuell (Back Button)
