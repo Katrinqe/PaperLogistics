@@ -241,7 +241,7 @@
             </div>
         </div>
 
-        <!-- === SCREEN 5: SCANNER === -->
+      <!-- === SCREEN 5: SCANNER (ZXing Engine) === -->
         <div id="scan-screen" class="screen hidden">
             <div class="scan-header">
                 <button class="back-arrow" onclick="closeScanScreen()">
@@ -252,7 +252,11 @@
             </div>
             
             <div class="scanner-container">
-                <div id="reader"></div>
+                <video id="video-preview"></video>
+                <!-- Unser eigenes, unzerstörbares CSS-Overlay -->
+                <div class="scan-overlay">
+                    <div class="scan-box"></div>
+                </div>
             </div>
             
             <p style="text-align: center; color: #888; font-size: 0.9rem; margin-top: 20px;">
