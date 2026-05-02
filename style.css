@@ -843,10 +843,9 @@ header {
     width: 100%;
     border-radius: 16px;
     overflow: hidden;
-    background-color: #111;
+    background-color: #000;
     border: 1px solid #333;
-    /* Ein quadratisches Format für den Kamerasucher erzwingen */
-    aspect-ratio: 1 / 1; 
+    /* Wir zwingen hier kein Format mehr auf, die Bibliothek regelt die Höhe selbst */
 }
 
 /* Die Bibliothek erzeugt eigene Elemente, die wir hiermit übersteuern */
@@ -856,6 +855,8 @@ header {
 }
 
 #reader video {
+    width: 100% !important;
+    height: auto !important; /* Wichtig, damit das Video nicht gestaucht wird */
     object-fit: cover;
     border-radius: 16px;
 }
