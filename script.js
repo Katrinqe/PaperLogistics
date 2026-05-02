@@ -108,18 +108,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     renderCalendar();
 
-   // --- New Container Screen Logic (Master & Child) ---
+ // --- New Container Screen Logic (Master & Child) ---
     const homeScreen = document.getElementById('home-screen');
     const newContainerScreen = document.getElementById('new-container-screen');
     const cardSlider = document.getElementById('card-slider');
     const currentViewTitle = document.getElementById('current-view-title');
     
-    // Master State (Container) & Child States (Blöcke)
-    let masterState = { id: '', name: 'Container_001', qrDesign: 'squares', format: '', blocks: 0, quality: '', date: '' };
-    let childStates = []; // Array of objects
-    let currentActiveIndex = -1; // -1 = Container, 0-9 = Blöcke
+    // Master State (Container) & Child States (Blöcke) - QR Design entfernt, Price hinzugefügt
+    let masterState = { id: '', name: 'Container_001', format: '', blocks: 0, price: '', quality: '', date: '' };
+    let childStates = []; 
+    let currentActiveIndex = -1; 
 
-    // Hilfsfunktion: ID generieren (falls noch nicht in Database Logic definiert)
     function generateUUID(prefix) {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let res = prefix + '-';
@@ -132,13 +131,12 @@ document.addEventListener("DOMContentLoaded", () => {
         homeScreen.classList.add('hidden');
         newContainerScreen.classList.remove('hidden');
         
-        // Initialer Reset
         masterState = { 
             id: generateUUID('C'), 
             name: 'Container_001', 
-            qrDesign: 'squares', 
             format: '', 
             blocks: 0, 
+            price: '', 
             quality: '', 
             date: new Date().toISOString().split('T')[0] 
         };
@@ -157,8 +155,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // --- UI Event Listeners für Eingaben ---
-    
- // Name Input
     document.getElementById('v2-name').addEventListener('input', (e) => {
         if(currentActiveIndex === -1) {
             masterState.name = e.target.value;
@@ -168,47 +164,37 @@ document.addEventListener("DOMContentLoaded", () => {
         renderCards();
     });
 
-    // Date Input
     document.getElementById('v2-date').addEventListener('input', (e) => {
         updateState('date', e.target.value);
     });
 
-    // Generische Toggle Logic für Buttons
     document.querySelectorAll('.toggle-row button, .blocks-grid button').forEach(btn => {
         btn.addEventListener('click', function() {
             const val = this.getAttribute('data-val');
             const parentId = this.parentElement.id;
             
-            // UI Update (Active Class)
             if(parentId !== 'v2-blocks') {
                 this.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
             }
 
-            // Logic Routing
-            if (parentId === 'v2-qr-design') updateState('qrDesign', val);
             if (parentId === 'v2-format') {
                 updateState('format', val);
-                // Smart-Default: A5 = 5 Blöcke, A6 = 5 Blöcke (anpassbar)
-                if (currentActiveIndex === -1 && masterState.blocks === 0) {
-                    updateBlocksCount(5);
-                }
+                if (currentActiveIndex === -1 && masterState.blocks === 0) updateBlocksCount(5);
             }
             if (parentId === 'v2-blocks') {
-                // Blocks können nur im Container-Modus geändert werden
                 if (currentActiveIndex === -1) updateBlocksCount(parseInt(val));
             }
+            if (parentId === 'v2-price') updateState('price', val);
             if (parentId === 'v2-quality') updateState('quality', val);
         });
     });
 
     function updateState(key, value) {
         if (currentActiveIndex === -1) {
-            // Master Update: Ändert Container und löscht individuelle Child-Overrides
             masterState[key] = value;
             childStates.forEach(child => child[key] = null);
         } else {
-            // Child Update: Überschreibt nur diesen spezifischen Block
             childStates[currentActiveIndex][key] = value;
         }
         renderCards();
@@ -216,36 +202,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function updateBlocksCount(count) {
         masterState.blocks = count;
-        // UI für Blocks updaten
         document.querySelectorAll('#v2-blocks button').forEach(b => {
             if (parseInt(b.getAttribute('data-val')) <= count) b.classList.add('active');
             else b.classList.remove('active');
         });
 
-  // Child States anpassen
         while (childStates.length < count) {
             childStates.push({ 
                 id: generateUUID('B'), 
-                name: `Block_${childStates.length + 1}`, // Gibt dem Block direkt seinen Namen
+                name: `Block_${childStates.length + 1}`,
                 format: null, 
+                price: null,
                 quality: null, 
                 date: null 
             });
         }
-        if (childStates.length > count) {
-            childStates.length = count; // Kürzen
-        }
+        if (childStates.length > count) childStates.length = count; 
         renderCards();
     }
 
     function resetToggles() {
         document.querySelectorAll('.toggle-row button, .blocks-grid button').forEach(b => b.classList.remove('active'));
-        document.querySelector('#v2-qr-design button[data-val="squares"]').classList.add('active');
     }
 
     // --- Rendering der Live Cards ---
-    
-    // Aggregations-Funktion (Sammelt z.B. High / Low)
     function getAggregated(key) {
         let values = new Set();
         if (masterState[key]) values.add(masterState[key]);
@@ -254,44 +234,30 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         return Array.from(values).join(' / ') || '-';
     }
-// --- QR Code Design Engine ---
-    function getQRConfig(designType, isBlock = false) {
-        const color = isBlock ? "#0055ff" : "#000000"; // Blau für Blöcke, Schwarz für Container
-        
-        let config = {
-            width: 70,
-            height: 70,
+
+    // Klassisches QR Design (nur Quadrate, Farben bleiben erhalten)
+    function getQRConfig(isBlock = false) {
+        const color = isBlock ? "#0055ff" : "#000000"; 
+        return {
+            width: 85,
+            height: 85,
             dotsOptions: { color: color, type: "square" },
             cornersSquareOptions: { color: color, type: "square" },
             cornersDotOptions: { color: color, type: "square" },
-            backgroundOptions: { color: "transparent" } // Transparent passt sich besser an die Cards an
+            backgroundOptions: { color: "transparent" } 
         };
-
-        if (designType === "dots") {
-            config.dotsOptions.type = "dots";
-            config.cornersSquareOptions.type = "dot";
-            config.cornersDotOptions.type = "dot";
-        } else if (designType === "rounded") {
-            config.dotsOptions.type = "rounded";
-            config.cornersSquareOptions.type = "extra-rounded";
-        } else if (designType === "mixed") {
-            config.dotsOptions.type = "classy";
-            config.cornersSquareOptions.type = "extra-rounded";
-            config.cornersDotOptions.type = "dot";
-        }
-        return config;
     }
 
     function renderCards() {
         cardSlider.innerHTML = '';
         
-        // 1. Container Card rendern
         const cCard = document.createElement('div');
         cCard.className = 'live-card';
         cCard.innerHTML = `
             <div class="card-info">
                 <div class="card-title">${masterState.name || 'Unnamed Container'}</div>
                 <div class="card-detail">Format: ${getAggregated('format')}</div>
+                <div class="card-detail">Price: ${getAggregated('price')}</div>
                 <div class="card-detail">Quality: ${getAggregated('quality')}</div>
                 <div class="card-detail">Date: ${getAggregated('date')}</div>
             </div>
@@ -299,7 +265,6 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         cardSlider.appendChild(cCard);
 
-        // 2. Block Cards rendern
         childStates.forEach((child, index) => {
             const bCard = document.createElement('div');
             bCard.className = 'live-card card-blue';
@@ -307,6 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="card-info">
                     <div class="card-title">${child.name}</div>
                     <div class="card-detail">Format: ${child.format || masterState.format || '-'}</div>
+                    <div class="card-detail">Price: ${child.price || masterState.price || '-'}</div>
                     <div class="card-detail">Quality: ${child.quality || masterState.quality || '-'}</div>
                     <div class="card-detail">Date: ${child.date || masterState.date || '-'}</div>
                 </div>
@@ -315,13 +281,12 @@ document.addEventListener("DOMContentLoaded", () => {
             cardSlider.appendChild(bCard);
         });
 
-        // 3. Premium QR Codes generieren
-        const containerConfig = getQRConfig(masterState.qrDesign, false);
+        const containerConfig = getQRConfig(false);
         containerConfig.data = masterState.id;
         new QRCodeStyling(containerConfig).append(document.getElementById('qr-render-c'));
         
         childStates.forEach((child, index) => {
-            const blockConfig = getQRConfig(masterState.qrDesign, true); // Blöcke erben das Design
+            const blockConfig = getQRConfig(true); 
             blockConfig.data = child.id;
             new QRCodeStyling(blockConfig).append(document.getElementById(`qr-render-b${index}`));
         });
@@ -331,8 +296,6 @@ document.addEventListener("DOMContentLoaded", () => {
     cardSlider.addEventListener('scroll', () => {
         const scrollX = cardSlider.scrollLeft;
         const cardWidth = cardSlider.clientWidth;
-        
-        // Berechnet, welche Karte aktuell im Fokus ist (-1 = Container, 0+ = Block)
         const index = Math.round(scrollX / cardWidth) - 1;
         
         if (currentActiveIndex !== index) {
@@ -341,27 +304,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-function updateUIFromScroll(index) {
+    function updateUIFromScroll(index) {
         const editorSection = document.querySelector('.editor-section');
         
-        // Titel, Name und Farbe anpassen
         if (index === -1) {
             currentViewTitle.textContent = 'CONTAINER';
             currentViewTitle.style.color = '#888';
             document.getElementById('v2-name').value = masterState.name;
-            editorSection.classList.remove('block-mode'); // Weiße Auswahlfelder
-            
+            editorSection.classList.remove('block-mode'); 
             syncInputsWithState(masterState);
         } else {
-            currentViewTitle.textContent = 'BLOCK'; // Oben steht nur noch BLOCK
+            currentViewTitle.textContent = 'BLOCK';
             currentViewTitle.style.color = '#0055ff'; 
-            document.getElementById('v2-name').value = childStates[index].name; // Zeigt Block_1 etc.
-            editorSection.classList.add('block-mode'); // Blaue Auswahlfelder
+            document.getElementById('v2-name').value = childStates[index].name; 
+            editorSection.classList.add('block-mode'); 
             
-            // Sync mit spezifischem Block oder Fallback auf Master
             const child = childStates[index];
             syncInputsWithState({
                 format: child.format || masterState.format,
+                price: child.price || masterState.price,
                 quality: child.quality || masterState.quality,
                 date: child.date || masterState.date
             });
@@ -369,9 +330,13 @@ function updateUIFromScroll(index) {
     }
 
     function syncInputsWithState(stateObj) {
-        document.querySelectorAll('#v2-format button, #v2-quality button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#v2-format button, #v2-price button, #v2-quality button').forEach(b => b.classList.remove('active'));
         if (stateObj.format) {
             const btn = document.querySelector(`#v2-format button[data-val="${stateObj.format}"]`);
+            if (btn) btn.classList.add('active');
+        }
+        if (stateObj.price) {
+            const btn = document.querySelector(`#v2-price button[data-val="${stateObj.price}"]`);
             if (btn) btn.classList.add('active');
         }
         if (stateObj.quality) {
@@ -399,41 +364,37 @@ function updateUIFromScroll(index) {
         localStorage.setItem('paperlogistics_db', JSON.stringify(db));
     }
 
-    // --- Database & Confirm Button Logic (V2) ---
+  // --- Database & Confirm Button Logic (V2) ---
     document.getElementById('btn-confirm-v2').addEventListener('click', () => {
-        // Übernimmt exakt das, was im Hintergrund-State gespeichert ist
         const containerData = {
             id: masterState.id,
             name: masterState.name,
             date: masterState.date,
             format: masterState.format,
+            price: masterState.price,
             quality: masterState.quality,
-            qrDesign: masterState.qrDesign, // Sichert das gewählte QR-Design
             blocks: []
         };
 
-// Die individuellen Werte (oder Vererbungen) der Blöcke abspeichern
         childStates.forEach(child => {
             containerData.blocks.push({
                 id: child.id,
-                name: child.name, // Speichert nun auch den individuellen Block-Namen ab
+                name: child.name, 
                 format: child.format || masterState.format,
+                price: child.price || masterState.price,
                 quality: child.quality || masterState.quality,
                 date: child.date || masterState.date,
-                status: 'available' // Wichtig für später, wenn wir verkaufen
+                status: 'available' 
             });
         });
 
-        // In lokale Datenbank speichern
         const db = loadDatabase();
-        db.containers.unshift(containerData); // unshift packt es ganz nach oben in die Liste
+        db.containers.unshift(containerData); 
         saveDatabase(db);
 
-        // Screens wechseln
         newContainerScreen.classList.add('hidden');
         listScreen.classList.remove('hidden');
         
-        // Liste rendern (Diese Funktion hast du bereits ganz unten in deiner Datei)
         renderListScreen();
     });
 
@@ -451,17 +412,16 @@ function updateUIFromScroll(index) {
 
     // --- List Rendering & QR Generation ---
     function renderListScreen() {
-        qrListContent.innerHTML = ''; // Liste leeren
+        qrListContent.innerHTML = ''; 
         const db = loadDatabase();
 
         db.containers.forEach((container, index) => {
             const listItem = document.createElement('div');
             listItem.className = 'list-item';
             
-            // Linke Seite: Infos
             const infoDiv = document.createElement('div');
             infoDiv.className = 'list-item-info';
-        // Datum von YYYY-MM-DD in DD.MM.YYYY umwandeln für eine saubere Anzeige
+            
             let displayDate = container.date;
             if (displayDate && displayDate.includes('-')) {
                 const parts = displayDate.split('-');
@@ -473,7 +433,6 @@ function updateUIFromScroll(index) {
                 <span class="list-item-date">${displayDate} &bull; ${container.blocks.length} Blocks</span>
             `;
             
-            // Rechte Seite: QR Code Container
             const qrDiv = document.createElement('div');
             qrDiv.className = 'qr-code-display';
             qrDiv.id = `qr-code-${index}`;
@@ -482,8 +441,8 @@ function updateUIFromScroll(index) {
             listItem.appendChild(qrDiv);
             qrListContent.appendChild(listItem);
 
-     // Generiert den Premium-QR-Code mit dem gespeicherten Design
-            const listQRConfig = getQRConfig(container.qrDesign || 'squares', false);
+            // Generiert den Premium-QR-Code im klassischen Design für die Liste
+            const listQRConfig = getQRConfig(false);
             listQRConfig.data = container.id;
             listQRConfig.width = 60;
             listQRConfig.height = 60;
@@ -491,7 +450,6 @@ function updateUIFromScroll(index) {
             new QRCodeStyling(listQRConfig).append(document.getElementById(`qr-code-${index}`));
         });
 
-        // Wenn die Datenbank leer ist
         if (db.containers.length === 0) {
             qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Containers created yet.</p>';
         }
