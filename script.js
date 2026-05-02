@@ -367,6 +367,9 @@ document.addEventListener("DOMContentLoaded", () => {
  // --- Database & ID Generation Logic ---
     const listScreen = document.getElementById('list-screen');
     const qrListContent = document.getElementById('qr-list-content');
+    const detailScreen = document.getElementById('detail-screen');
+    const detailCardContainer = document.getElementById('detail-card-container');
+    const detailHistoryList = document.getElementById('detail-history-list');
 
 
 
@@ -462,9 +465,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
             }
 
-            // Wir nutzen exakt die .live-card Klasse aus dem Bearbeiten-Screen
-            const listItem = document.createElement('div');
+const listItem = document.createElement('div');
             listItem.className = 'live-card'; 
+            listItem.style.cursor = 'pointer'; // Zeigt an, dass es klickbar ist
+            
+            // Öffnet den Detail-Screen und übergibt den Index
+            listItem.addEventListener('click', () => {
+                openDetailScreen(index);
+            });
             
             listItem.innerHTML = `
                 <div class="card-info">
@@ -492,4 +500,72 @@ document.addEventListener("DOMContentLoaded", () => {
             qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Containers created yet.</p>';
         }
     }
+
+    // --- Detail Screen Logic ---
+    window.openDetailScreen = function(containerIndex) {
+        const db = loadDatabase();
+        const container = db.containers[containerIndex];
+        
+        if (!container) return;
+
+        // 1. Screens wechseln
+        listScreen.classList.add('hidden');
+        detailScreen.classList.remove('hidden');
+
+        // Aggregations-Logik für die Card (Wiederverwendung)
+        function getDetailAggregated(key) {
+            let values = new Set();
+            if (container[key]) values.add(container[key]);
+            if (container.blocks) {
+                container.blocks.forEach(block => {
+                    if (block[key]) values.add(block[key]);
+                });
+            }
+            return Array.from(values).join(' / ') || '-';
+        }
+
+        // Datum formatieren
+        let displayDate = container.date;
+        if (displayDate && displayDate.includes('-')) {
+            const parts = displayDate.split('-');
+            displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
+
+        // 2. Die 1:1 Live-Card in den Detail-Screen kopieren
+        detailCardContainer.innerHTML = `
+            <div class="live-card">
+                <div class="card-info">
+                    <div class="card-title">${container.name}</div>
+                    <div class="card-detail">Format: ${getDetailAggregated('format')}</div>
+                    <div class="card-detail">Price: ${getDetailAggregated('price')}</div>
+                    <div class="card-detail">Quality: ${getDetailAggregated('quality')}</div>
+                    <div class="card-detail">Date: ${displayDate}</div>
+                </div>
+                <div class="card-qr-box" id="qr-detail-c"></div>
+            </div>
+        `;
+
+        // QR Code im Detail-Screen generieren
+        const detailQRConfig = getQRConfig(false);
+        detailQRConfig.data = container.id;
+        detailQRConfig.width = 85; 
+        detailQRConfig.height = 85;
+        new QRCodeStyling(detailQRConfig).append(document.getElementById('qr-detail-c'));
+
+        // 3. Historie rendern (Aktuell nur "Created")
+        detailHistoryList.innerHTML = `
+            <div class="history-item">
+                <div class="history-icon"><i class="fa-solid fa-plus"></i></div>
+                <div class="history-info">
+                    <span class="history-text">Container Created</span>
+                    <span class="history-date">${displayDate}</span>
+                </div>
+            </div>
+        `;
+    };
+
+    window.closeDetailScreen = function() {
+        detailScreen.classList.add('hidden');
+        listScreen.classList.remove('hidden');
+    };
 });
