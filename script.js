@@ -689,88 +689,98 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
     const scanScreen = document.getElementById('scan-screen');
     let html5QrCode = null;
 
-// Hilfsfunktion: Kamera stoppen, Canvas zerstören und HTML säubern
-    function stopScanner(callback) {
-        if (html5QrCode) {
-            html5QrCode.stop().then(() => {
-                return html5QrCode.clear(); // 🔥 WICHTIG: Zerstört den unsichtbaren Video-Stream
-            }).then(() => {
-                document.getElementById('reader').innerHTML = '';
-                html5QrCode = null;
-                if (callback) callback();
-            }).catch(err => {
-                console.warn("Scanner stop error:", err);
-                document.getElementById('reader').innerHTML = '';
-                html5QrCode = null;
-                if (callback) callback();
-            });
-        } else {
-            if (callback) callback();
-        }
+    // Hilfsfunktion: Promise-basierter, kugelsicherer Cleanup
+    function stopScanner() {
+        return new Promise((resolve) => {
+            if (!html5QrCode) {
+                resolve();
+                return;
+            }
+
+            html5QrCode.stop()
+                .catch(err => {
+                    console.warn("Stop error:", err);
+                })
+                .then(() => {
+                    if (html5QrCode) return html5QrCode.clear();
+                })
+                .catch(err => {
+                    console.warn("Clear error:", err);
+                })
+                .finally(() => {
+                    document.getElementById('reader').innerHTML = '';
+                    html5QrCode = null;
+                    resolve();
+                });
+        });
     }
 
     // Öffnet den Scanner
-    document.getElementById('btn-scan-qr').addEventListener('click', () => {
+    document.getElementById('btn-scan-qr').addEventListener('click', async () => {
         homeScreen.classList.add('hidden');
         scanScreen.classList.remove('hidden');
 
-        // Sicherheitshalber aufräumen, bevor wir neu starten
-        document.getElementById('reader').innerHTML = '';
-        
-        html5QrCode = new Html5Qrcode("reader");
-        
-        const config = { 
-            fps: 10, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-        };
+        // 🔥 Verhindert doppelte Instanzen komplett
+        await stopScanner();
 
-        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-        .catch((err) => {
-            alert("Kamera konnte nicht gestartet werden. Bitte erlaube den Kamera-Zugriff.");
-            stopScanner(() => {
-                scanScreen.classList.add('hidden');
-                homeScreen.classList.remove('hidden');
+        // 🔄 Mini-Delay für den absolut sauberen Restart ohne Kamera-Konflikte
+        setTimeout(() => {
+            html5QrCode = new Html5Qrcode("reader");
+            
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+            .catch((err) => {
+                alert("Kamera konnte nicht gestartet werden. Bitte erlaube den Kamera-Zugriff.");
+                closeScanScreen();
             });
-        });
+        }, 200);
     });
 
     // Wird ausgeführt, sobald ein QR-Code erkannt wurde
-    function onScanSuccess(decodedText, decodedResult) {
-        // Stoppt die Kamera und putzt das HTML, BEVOR die Navigation ausgeführt wird
-        stopScanner(() => {
-            scanScreen.classList.add('hidden');
-            
-            const db = loadDatabase();
-            let targetContainerIndex = -1;
+    async function onScanSuccess(decodedText, decodedResult) {
+        // 🔔 Haptisches Feedback: Gerät vibriert kurz für echtes App-Feeling (nur unterstützt auf Mobile)
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
 
-            // 1. Prüfen, ob es ein Container-QR-Code ist
-            targetContainerIndex = db.containers.findIndex(c => c.id === decodedText);
+        // Kamera asynchron und kugelsicher stoppen
+        await stopScanner();
+        
+        scanScreen.classList.add('hidden');
+        
+        const db = loadDatabase();
+        let targetContainerIndex = -1;
 
-            // 2. Falls nicht gefunden: Prüfen, ob es ein Block-QR-Code ist
-            if (targetContainerIndex === -1) {
-                db.containers.forEach((container, index) => {
-                    if (container.blocks && container.blocks.some(b => b.id === decodedText)) {
-                        targetContainerIndex = index;
-                    }
-                });
-            }
+        // 1. Prüfen, ob es ein Container-QR-Code ist
+        targetContainerIndex = db.containers.findIndex(c => c.id === decodedText);
 
-            // 3. Navigation ausführen
-            if (targetContainerIndex !== -1) {
-                openDetailScreen(targetContainerIndex);
-            } else {
-                alert(`QR-Code (${decodedText}) gehört zu keinem Container im System.`);
-                homeScreen.classList.remove('hidden');
-            }
-        });
+        // 2. Falls nicht gefunden: Prüfen, ob es ein Block-QR-Code ist
+        if (targetContainerIndex === -1) {
+            db.containers.forEach((container, index) => {
+                if (container.blocks && container.blocks.some(b => b.id === decodedText)) {
+                    targetContainerIndex = index;
+                }
+            });
+        }
+
+        // 3. Navigation ausführen
+        if (targetContainerIndex !== -1) {
+            openDetailScreen(targetContainerIndex);
+        } else {
+            alert(`QR-Code (${decodedText}) gehört zu keinem Container im System.`);
+            homeScreen.classList.remove('hidden');
+        }
     }
 
     // Schließt den Scanner manuell (Back Button)
-    window.closeScanScreen = function() {
-        stopScanner(() => {
-            scanScreen.classList.add('hidden');
-            homeScreen.classList.remove('hidden');
-        });
+    window.closeScanScreen = async function() {
+        await stopScanner();
+        scanScreen.classList.add('hidden');
+        homeScreen.classList.remove('hidden');
     };
 });
