@@ -654,3 +654,108 @@ header {
     width: 100%;
     height: 100%;
 }
+
+/* --- Detail Screen --- */
+.detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+#detail-title {
+    font-size: 1.1rem;
+    color: #fff;
+    letter-spacing: 2px;
+}
+
+#detail-card-container {
+    margin-bottom: 25px;
+}
+
+/* History Section */
+.history-section {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 5px;
+    margin-bottom: 15px;
+}
+
+.history-title {
+    font-size: 0.8rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #333;
+}
+
+.history-item {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    align-items: flex-start;
+}
+
+.history-icon {
+    background-color: #111;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.history-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-top: 2px;
+}
+
+.history-text {
+    color: #eee;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.history-date {
+    color: #777;
+    font-size: 0.8rem;
+}
+
+/* Action Bar Bottom */
+.detail-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 10px;
+}
+
+.action-btn {
+    background-color: #111;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    height: 60px;
+    flex: 1;
+    font-size: 1.2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.action-btn:active {
+    background-color: #333;
+}
+
+.action-btn.btn-danger {
+    color: #ff4444; /* Rot für Löschen, um Fehler zu vermeiden */
+}
