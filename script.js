@@ -629,12 +629,26 @@ const listItem = document.createElement('div');
             });
         }
 
-        currentActiveIndex = -1; // Startet wieder auf der Master-Card
+currentActiveIndex = -1; // Startet wieder auf der Master-Card
         document.getElementById('v2-name').value = masterState.name;
         document.getElementById('v2-date').value = masterState.date;
         
         resetToggles();
+        
+        // Block-Anzahl visuell wiederherstellen
+        document.querySelectorAll('#v2-blocks button').forEach(b => {
+            if (parseInt(b.getAttribute('data-val')) <= masterState.blocks) {
+                b.classList.add('active');
+            }
+        });
+
         renderCards();
+        
+        // Zwingt die UI dazu, alle gespeicherten Toggles (Format, Price, Quality) farblich zu markieren
+        updateUIFromScroll(-1);
+        
+        // Setzt den physischen Wisch-Slider wieder ganz nach links auf Anfang
+        document.getElementById('card-slider').scrollLeft = 0;
 
         // Screen Wechsel
         detailScreen.classList.add('hidden');
