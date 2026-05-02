@@ -370,9 +370,11 @@ header {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 25px; /* Etwas mehr Luft zur Karte */
-    overflow-y: auto;
-    padding-right: 5px;
+    margin-bottom: 20px;
+    /* Deaktiviert das interne Scrollen komplett */
+    overflow: hidden; 
+    /* Stellt sicher, dass der Bereich nur so viel Platz nimmt, wie er braucht */
+    flex-shrink: 0; 
 }
 
 #v2-name {
