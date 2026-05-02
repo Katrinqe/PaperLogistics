@@ -685,134 +685,110 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         renderListScreen(); // Liste ohne den gelöschten Container neu zeichnen
     });
 
-// --- Scanner Logic ---
+// --- Scanner Logic (ZXing Engine) ---
     const scanScreen = document.getElementById('scan-screen');
-    let html5QrCode = null;
-    let isScanning = false; 
-    let isStopping = false; // 🔥 NEU: Der Lock für den sauberen Abbau
+    const codeReader = new ZXing.BrowserMultiFormatReader();
+    let isScanning = false;
 
-    // Hilfsfunktion: Promise-basierter, kugelsicherer Cleanup
-    function stopScanner() {
-        return new Promise((resolve) => {
-            // Guard: Wenn nichts da ist oder wir schon stoppen -> sofort abbrechen
-            if (!html5QrCode || isStopping) {
-                resolve();
-                return;
-            }
-
-            isStopping = true;
-
-            html5QrCode.stop()
-                .catch(err => {
-                    console.warn("Stop error:", err);
-                })
-                .then(() => {
-                    if (html5QrCode) return html5QrCode.clear();
-                })
-                .catch(err => {
-                    console.warn("Clear error:", err);
-                })
-                .finally(() => {
-                    // 🔥 Robusterer DOM Reset anstatt innerHTML = ''
-                    document.getElementById('reader').replaceChildren();
-                    html5QrCode = null;
-                    isStopping = false;
-                    resolve();
-                });
-        });
+    // Hilfsfunktion: Hardware-Kamera physisch vom Video-Element trennen
+    async function stopScanner() {
+        // 1. ZXing Loop stoppen
+        codeReader.reset();
+        
+        // 2. Hardware-Kill-Switch für den Video-Stream
+        const videoEl = document.getElementById('video-preview');
+        if (videoEl && videoEl.srcObject) {
+            const stream = videoEl.srcObject;
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop()); // Tötet die Kamera auf Systemebene
+            videoEl.srcObject = null;
+        }
     }
 
-// Öffnet den Scanner
+    // Öffnet den Scanner
     document.getElementById('btn-scan-qr').addEventListener('click', async () => {
-        // Guard: Verhindert mehrfache Starts, wenn der Button gespammt wird
-        if (html5QrCode) return;
+        if (isScanning) return; // Guard
+        isScanning = true;
 
         homeScreen.classList.add('hidden');
         scanScreen.classList.remove('hidden');
 
-        isScanning = false; // Reset des Locks beim sauberen Öffnen
-
-        await stopScanner();
-
-        // Benannte Konstante für sauberen Code
-        const CAMERA_RESTART_DELAY = 200;
-        await new Promise(res => setTimeout(res, CAMERA_RESTART_DELAY));
-
-        html5QrCode = new Html5Qrcode("reader");
-        
-        const config = { 
-            fps: 10, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-        };
-
-        // Versuch 1: Rückkamera ("environment")
-        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-        .catch(async (err) => {
-            console.warn("Rückkamera nicht verfügbar, versuche Fallback...", err);
-            
-            // Versuch 2: Fallback auf Frontkamera oder Desktop-Webcam ("user")
-            html5QrCode.start({ facingMode: "user" }, config, onScanSuccess)
-            .catch(async (fallbackErr) => {
-                alert("Kamera konnte nicht gestartet werden. Bitte erlaube den Kamera-Zugriff.");
-                await stopScanner();
-                scanScreen.classList.add('hidden');
-                homeScreen.classList.remove('hidden');
-            });
-        });
-    });
-
-// Wird ausgeführt, sobald ein QR-Code erkannt wurde
-    async function onScanSuccess(decodedText, decodedResult) {
-        // Lock-Mechanismus gegen "Ghost-Scans"
-        if (isScanning) return;
-        isScanning = true;
-
-        // 🔥 KRITISCH: Scanner SOFORT pausieren, bevor irgendein async läuft
         try {
-            await html5QrCode.pause();
-        } catch(e) {
-            console.warn("Could not pause scanner:", e);
-        }
-
-        if (navigator.vibrate) {
-            navigator.vibrate(50);
-        }
-
-        await stopScanner();
-        
-        scanScreen.classList.add('hidden');
-        
-        const db = loadDatabase();
-        let targetContainerIndex = -1;
-
-        // 1. Prüfen, ob es ein Container-QR-Code ist
-        targetContainerIndex = db.containers.findIndex(c => c.id === decodedText);
-
-        // 2. Falls nicht gefunden: Performante Block-Suche (bricht ab, sobald gefunden)
-        if (targetContainerIndex === -1) {
-            for (let i = 0; i < db.containers.length; i++) {
-                const container = db.containers[i];
-                if (container.blocks && container.blocks.some(b => b.id === decodedText)) {
-                    targetContainerIndex = i;
-                    break; // Spart Performance, beendet Schleife sofort
-                }
+            // Holt die Liste aller Kameras
+            const videoInputDevices = await codeReader.listVideoInputDevices();
+            
+            // Standardmäßig erste Kamera nehmen
+            let selectedDeviceId = videoInputDevices[0].deviceId;
+            
+            // Intelligent: Suche explizit nach Rückkamera ("back" oder "environment")
+            const backCamera = videoInputDevices.find(dev => 
+                dev.label.toLowerCase().includes('back') || 
+                dev.label.toLowerCase().includes('environment')
+            );
+            if (backCamera) {
+                selectedDeviceId = backCamera.deviceId;
             }
-        }
 
-        // 3. Navigation ausführen
-        if (targetContainerIndex !== -1) {
-            openDetailScreen(targetContainerIndex);
-        } else {
-            alert(`QR-Code (${decodedText}) gehört zu keinem Container im System.`);
+            // Startet den Scan-Loop
+            codeReader.decodeFromVideoDevice(selectedDeviceId, 'video-preview', async (result, err) => {
+                if (result) {
+                    // TREFFER!
+                    if (!isScanning) return; // Doppel-Scan Guard
+                    isScanning = false;
+                    
+                    // 1. Hardware-Kill sofort auslösen
+                    await stopScanner();
+                    
+                    // 2. Feedback (Vibration)
+                    if (navigator.vibrate) navigator.vibrate(50);
+                    
+                    // 3. Auswertung
+                    const decodedText = result.getText();
+                    scanScreen.classList.add('hidden');
+                    
+                    const db = loadDatabase();
+                    let targetContainerIndex = -1;
+
+                    targetContainerIndex = db.containers.findIndex(c => c.id === decodedText);
+
+                    if (targetContainerIndex === -1) {
+                        for (let i = 0; i < db.containers.length; i++) {
+                            const container = db.containers[i];
+                            if (container.blocks && container.blocks.some(b => b.id === decodedText)) {
+                                targetContainerIndex = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    // 4. Navigation
+                    if (targetContainerIndex !== -1) {
+                        openDetailScreen(targetContainerIndex);
+                    } else {
+                        alert(`QR-Code (${decodedText}) gehört zu keinem Container im System.`);
+                        homeScreen.classList.remove('hidden');
+                    }
+                }
+                
+                // Ignoriert harmlose Fehler (wenn in einem Frame kein Code gefunden wurde)
+                if (err && !(err instanceof ZXing.NotFoundException)) {
+                    console.warn("ZXing Reader Error:", err);
+                }
+            });
+
+        } catch (err) {
+            console.error("Kamera-Fehler:", err);
+            alert("Kamera konnte nicht gestartet werden. Bitte erlaube den Zugriff.");
+            await stopScanner();
+            isScanning = false;
+            scanScreen.classList.add('hidden');
             homeScreen.classList.remove('hidden');
         }
-
-       
-    }
+    });
 
     // Schließt den Scanner manuell (Back Button)
     window.closeScanScreen = async function() {
+        isScanning = false;
         await stopScanner();
         scanScreen.classList.add('hidden');
         homeScreen.classList.remove('hidden');
