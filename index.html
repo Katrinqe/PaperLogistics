@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="style.css">
     <!-- Externe Icons (FontAwesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Externe Bibliothek für den Kamera-Scanner -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
     <!-- Splash Screen -->
@@ -68,8 +70,9 @@
            <button aria-label="Neuen QR erstellen" class="icon-btn" id="btn-new-qr">
                 <i class="fa-solid fa-qrcode"></i><span class="badge">+</span>
             </button>
-            <button aria-label="Scannen" class="icon-btn">
-                <i class="fa-solid fa-expand"></i>
+    <button class="action-btn" id="btn-scan-qr">
+                <i class="fa-solid fa-qrcode"></i>
+                <span>Scan</span>
             </button>
            <button aria-label="Listen" class="icon-btn" id="btn-list">
                 <i class="fa-solid fa-list"></i>
@@ -237,6 +240,25 @@
                     <button class="btn-confirm" onclick="confirmModal()">Confirm</button>
                 </div>
             </div>
+        </div>
+
+        <!-- === SCREEN 5: SCANNER === -->
+        <div id="scan-screen" class="screen hidden">
+            <div class="scan-header">
+                <button class="back-arrow" onclick="closeScanScreen()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2>SCANNER</h2>
+                <div style="width: 30px;"></div>
+            </div>
+            
+            <div class="scanner-container">
+                <div id="reader"></div>
+            </div>
+            
+            <p style="text-align: center; color: #888; font-size: 0.9rem; margin-top: 20px;">
+                Fokussiere einen Container- oder Block-QR-Code
+            </p>
         </div>
 <!-- === DELETE CONFIRMATION POPUP === -->
 <!-- === DELETE CONFIRMATION POPUP === -->
