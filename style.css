@@ -1086,3 +1086,55 @@ header {
 .btn-popup-cancel:active, .btn-popup-confirm:active {
     transform: scale(0.92);
 }
+
+/* --- Vollständige Live-Cards (Farbcodes) --- */
+.live-card.card-red {
+    border-color: #ff4444;
+    background-color: rgba(255, 68, 68, 0.05);
+}
+.live-card.card-red .card-title { color: #ff4444; }
+
+.live-card.card-green {
+    border-color: #00C851;
+    background-color: rgba(0, 200, 81, 0.05);
+}
+.live-card.card-green .card-title { color: #00C851; }
+
+/* --- Swipe-Carousel für die Blöcke --- */
+.block-carousel {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 15px;
+    padding-bottom: 5px;
+    /* Versteckt die Scrollbar für einen cleanen Look */
+    scrollbar-width: none; 
+}
+.block-carousel::-webkit-scrollbar {
+    display: none; 
+}
+
+.carousel-slide {
+    flex: 0 0 100%; /* Jede Karte nimmt 100% der Breite ein */
+    scroll-snap-align: center; /* Rastet perfekt in der Mitte ein */
+}
+
+/* Pagination Dots */
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #333;
+    transition: background-color 0.3s;
+}
+
+.carousel-dot.active {
+    background-color: #0055ff;
+}
