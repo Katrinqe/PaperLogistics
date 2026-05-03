@@ -1388,3 +1388,16 @@ header {
     object-fit: cover;
     margin-right: 15px;
 }
+
+/* --- Shop Detail Actions (2x2 Grid) --- */
+.shop-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 Spalten für die 4 Buttons */
+    gap: 12px;
+    margin-top: auto;
+    padding-bottom: 10px;
+}
+
+.shop-actions .action-btn {
+    width: 100%;
+}
