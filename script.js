@@ -1082,7 +1082,7 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
 
     // 6. Review Screen rendern
 // 6. Review Screen rendern (Vollständige ID-Cards + Carousel)
-    function openReviewExchangeScreen() {
+ function openReviewExchangeScreen() {
         const db = loadDatabase();
         const sourceContainer = db.containers[currentDetailIndex];
         const targetContainer = db.containers[exchangeTargetContainerIndex];
@@ -1104,32 +1104,29 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
                     ${createFullCardHTML(block, 'blue', `what-${index}`)}
                 </div>
             `;
-            // Für jeden Block einen Dot generieren (der erste ist aktiv)
             dotsHTML += `<div class="carousel-dot ${index === 0 ? 'active' : ''}"></div>`;
         });
 
         carouselHTML += `</div>`;
         dotsHTML += `</div>`;
         
-        // Wenn es nur ein Block ist, blenden wir die Dots aus, da man nicht wischen muss
         whatContainer.innerHTML = carouselHTML + (tempExchangeBlocks.length > 1 ? dotsHTML : '');
 
         document.getElementById('review-exchange-screen').classList.remove('hidden');
 
-        // QR-Codes physisch in die Platzhalter rendern
-        renderReviewQRCode(sourceContainer.id, 'qr-from');
-        renderReviewQRCode(targetContainer.id, 'qr-to');
+        // QR-Codes physisch generieren (false = schwarz für Container, true = blau für Blöcke)
+        renderReviewQRCode(sourceContainer.id, 'qr-from', false);
+        renderReviewQRCode(targetContainer.id, 'qr-to', false);
         tempExchangeBlocks.forEach((block, index) => {
-            renderReviewQRCode(block.id, `qr-what-${index}`);
+            renderReviewQRCode(block.id, `qr-what-${index}`, true);
         });
 
-        // Swipe-Logik für die Dots aktivieren
+        // Swipe-Logik für die Dots
         if (tempExchangeBlocks.length > 1) {
             const carousel = document.getElementById('review-block-carousel');
             const dots = document.querySelectorAll('#review-carousel-dots .carousel-dot');
             
             carousel.addEventListener('scroll', () => {
-                // Berechnet anhand der Scroll-Position, welche Karte gerade in der Mitte ist
                 const activeIndex = Math.round(carousel.scrollLeft / carousel.offsetWidth);
                 dots.forEach(d => d.classList.remove('active'));
                 if(dots[activeIndex]) dots[activeIndex].classList.add('active');
@@ -1137,33 +1134,42 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         }
     }
 
-    // Hilfsfunktion: Baut die vollständige HTML-Struktur des "Personalausweises"
+    // Hilfsfunktion: Baut die EXAKTE 1:1 HTML-Struktur der Original-Live-Card
     function createFullCardHTML(item, colorClass, qrIdSuffix) {
+        // Datumsauszug im exakt gleichen Format wie in der Liste
+        let displayDate = item.date || '-';
+        if (displayDate && displayDate.includes('-')) {
+            const parts = displayDate.split('-');
+            displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
+
         return `
             <div class="live-card card-${colorClass}">
-                <div class="card-qr" id="qr-${qrIdSuffix}"></div>
                 <div class="card-info">
                     <div class="card-title">${item.name}</div>
-                    <div class="card-detail">ID: ${item.id.substring(0, 8)}...</div>
                     <div class="card-detail">Format: ${item.format || '-'}</div>
+                    <div class="card-detail">Price: ${item.price || '-'}</div>
                     <div class="card-detail">Quality: ${item.quality || '-'}</div>
-                    <div class="card-detail">Price: ${item.price ? item.price + ' €' : '-'}</div>
+                    <div class="card-detail">Date: ${displayDate}</div>
                 </div>
+                <!-- Exakt dieselbe weiße Box wie in list-item und editor -->
+                <div class="card-qr-box" id="qr-${qrIdSuffix}"></div>
             </div>
         `;
     }
 
-    // Hilfsfunktion: Generiert den QR-Code in das leere div der Karte
-    function renderReviewQRCode(dataString, elementId) {
+
+
+// Hilfsfunktion: Nutzt exakt dieselben QR-Settings wie der Rest der App
+    function renderReviewQRCode(dataString, elementId, isBlock) {
         const el = document.getElementById(elementId);
         if (!el) return;
         el.innerHTML = ''; 
         
-        const config = getQRConfig(false);
+        const config = getQRConfig(isBlock);
         config.data = dataString;
-        config.width = 80; 
-        config.height = 80;
-        config.margin = 0; // Kein Rand, damit er perfekt in die Karte passt
+        config.width = 85; 
+        config.height = 85;
         
         const qrCode = new QRCodeStyling(config);
         qrCode.append(el);
