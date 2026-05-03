@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Externe Bibliothek für den Kamera-Scanner -->
     <script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <!-- Splash Screen -->
@@ -344,9 +345,12 @@
             </div>
         </div>
     </main>
+    <!-- === HIDDEN PDF STAGING AREA === -->
+    <div id="pdf-export-container"></div>
 <!-- Externe Bibliothek für QR-Codes -->
     <!-- Externe Bibliothek für Premium QR-Codes (qr-code-styling) -->
     <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
     <script src="script.js"></script>
+    <!-- === HIDDEN PDF STAGING AREA === -->
 </body>
 </html>
