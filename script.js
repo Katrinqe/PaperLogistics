@@ -1147,6 +1147,10 @@ window.closeNewContainerScreen = function() {
     let exchangeSelectedBlocks = []; // Speichert die IDs der ausgewählten Blöcke
 
     // TRANSFER: Öffnet Auswahl (Container) ODER direkt den Scanner (Block)
+// NEUER STATE TRACKER FÜR DEN WORKFLOW
+    let activeWorkflow = 'exchange'; // 'exchange' oder 'sell'
+
+    // TRANSFER: Öffnet Auswahl (Container) ODER direkt den Scanner (Block)
     document.getElementById('btn-exchange').addEventListener('click', () => {
         const db = loadDatabase();
         const container = db.containers[currentDetailIndex];
@@ -1154,6 +1158,10 @@ window.closeNewContainerScreen = function() {
         if (!container.blocks || container.blocks.length === 0) {
             alert('Dieser Container ist leer.'); return;
         }
+
+        activeWorkflow = 'exchange';
+        document.querySelector('#exchange-screen h2').textContent = 'SELECT BLOCKS';
+        document.getElementById('btn-exchange-target').textContent = 'Target';
 
         if (currentDetailSlideIndex > 0) {
             // BLOCK MODUS (Direktflug zum Scanner)
@@ -1163,7 +1171,37 @@ window.closeNewContainerScreen = function() {
             
             scanMode = 'exchange';
             detailScreen.classList.add('hidden');
-            startScannerAction(); // Scanner direkt öffnen!
+            startScannerAction(); 
+        } else {
+            // CONTAINER MODUS (Klassische Auswahl)
+            exchangeSelectedBlocks = [];
+            detailScreen.classList.add('hidden');
+            exchangeScreen.classList.remove('hidden');
+            renderExchangeList();
+        }
+    });
+
+    // VERKAUF: Öffnet Auswahl (Container) ODER überspringt sie und geht direkt zum Shop (Block)
+    document.getElementById('btn-sell').addEventListener('click', () => {
+        const db = loadDatabase();
+        const container = db.containers[currentDetailIndex];
+        
+        if (!container.blocks || container.blocks.length === 0) {
+            alert('Dieser Container ist leer.'); return;
+        }
+
+        activeWorkflow = 'sell';
+        document.querySelector('#exchange-screen h2').textContent = 'SELECT BLOCKS TO SELL';
+        document.getElementById('btn-exchange-target').textContent = 'Next';
+
+        if (currentDetailSlideIndex > 0) {
+            // BLOCK MODUS (Direktflug zur Shop-Auswahl)
+            const block = container.blocks[currentDetailSlideIndex - 1];
+            exchangeSelectedBlocks = [block.id];
+            tempExchangeBlocks = [{ ...block }]; 
+            
+            detailScreen.classList.add('hidden');
+            openShopSelectScreen(); // <--- Überspringt die Block-Auswahl und geht sofort zu den Shops
         } else {
             // CONTAINER MODUS (Klassische Auswahl)
             exchangeSelectedBlocks = [];
@@ -1234,21 +1272,27 @@ window.closeNewContainerScreen = function() {
 
     // --- Exchange Target & Conflict Logic ---
 
-    // 1. Target Button kicken
+// 1. Target / Next Button kicken
     document.getElementById('btn-exchange-target').addEventListener('click', () => {
         if (exchangeSelectedBlocks.length === 0) return;
 
         const db = loadDatabase();
         const sourceContainer = db.containers[currentDetailIndex];
 
-        // Deep-Copy der ausgewählten Blöcke in den Puffer, damit wir sie gefahrlos temporär umbenennen können
+        // Deep-Copy der ausgewählten Blöcke in den Puffer
         tempExchangeBlocks = sourceContainer.blocks
             .filter(b => exchangeSelectedBlocks.includes(b.id))
             .map(b => ({ ...b })); 
 
-        scanMode = 'exchange';
         exchangeScreen.classList.add('hidden');
-        startScannerAction(); // Wirft den Scanner explizit im Exchange-Modus an
+
+        // HYBRID WEICHE: Wohin geht die Reise?
+        if (activeWorkflow === 'exchange') {
+            scanMode = 'exchange';
+            startScannerAction(); // Transfer -> Scanner öffnen
+        } else if (activeWorkflow === 'sell') {
+            openShopSelectScreen(); // Verkauf -> Shop-Liste öffnen
+        }
     });
 
     // 2. Die Auswertung des Scans
@@ -1916,4 +1960,170 @@ window.closeNewContainerScreen = function() {
         document.getElementById('shop-detail-screen').classList.add('hidden');
         listScreen.classList.remove('hidden');
     };
+    // =========================================================
+    // --- SELL WORKFLOW: SHOP SELECTION & REVIEW ENGINE ---
+    // =========================================================
+    
+    const shopSelectScreen = document.getElementById('shop-select-screen');
+    const sellReviewScreen = document.getElementById('sell-review-screen');
+    const sellShopList = document.getElementById('sell-shop-list');
+    const btnShopSelectNext = document.getElementById('btn-shop-select-next');
+    
+    let sellTargetShopId = null; // Speichert den ausgewählten Shop
+
+    // 1. Shop-Auswahl öffnen und rendern
+    window.openShopSelectScreen = function() {
+        shopSelectScreen.classList.remove('hidden');
+        sellTargetShopId = null; // Reset bei jedem neuen Aufruf
+        renderShopSelectList();
+    };
+
+    window.closeShopSelectScreen = function() {
+        shopSelectScreen.classList.add('hidden');
+        sellTargetShopId = null;
+        
+        // Smarter Back-Button: Woher kamen wir?
+        if (currentDetailSlideIndex > 0) {
+            detailScreen.classList.remove('hidden'); // Kamen direkt vom Block
+        } else {
+            exchangeScreen.classList.remove('hidden'); // Kamen aus der Block-Auswahl
+        }
+    };
+
+    function renderShopSelectList() {
+        sellShopList.innerHTML = '';
+        const db = loadDatabase();
+        
+        if (!db.shops || db.shops.length === 0) {
+            sellShopList.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">Keine Shops im System gefunden.</p>';
+            btnShopSelectNext.classList.add('disabled');
+            btnShopSelectNext.classList.remove('active');
+            btnShopSelectNext.disabled = true;
+            return;
+        }
+
+        // Shops einzeln als klickbare Cards aufbauen
+        db.shops.forEach(shop => {
+            const isSelected = sellTargetShopId === shop.id;
+            const card = document.createElement('div');
+            card.className = `live-card exchange-card ${isSelected ? 'selected card-blue' : 'unselected'}`;
+            
+            const avatarHtml = shop.image 
+                ? `<img src="${shop.image}" class="list-avatar" style="width: 45px; height: 45px;">` 
+                : `<div class="list-avatar" style="width: 45px; height: 45px;"><i class="fa-solid fa-store" style="color:#666; font-size: 1rem;"></i></div>`;
+
+            card.innerHTML = `
+                <div style="display: flex; align-items: center; width: 100%; padding-right: 40px;">
+                    ${avatarHtml}
+                    <div class="card-info">
+                        <div class="card-title">${shop.name}</div>
+                    </div>
+                </div>
+                <i class="fa-solid ${isSelected ? 'fa-circle-check' : 'fa-circle'} exchange-check-icon"></i>
+            `;
+
+            // Single Select Logic (es kann immer nur einer grün/blau sein)
+            card.addEventListener('click', () => {
+                sellTargetShopId = shop.id;
+                if (navigator.vibrate) navigator.vibrate(30);
+                renderShopSelectList(); // Neu zeichnen, damit die Haken aktualisiert werden
+            });
+
+            sellShopList.appendChild(card);
+        });
+
+        // Next-Button aktivieren, sobald EIN Shop gewählt wurde
+        if (sellTargetShopId) {
+            btnShopSelectNext.classList.remove('disabled');
+            btnShopSelectNext.classList.add('active');
+            btnShopSelectNext.disabled = false;
+        } else {
+            btnShopSelectNext.classList.add('disabled');
+            btnShopSelectNext.classList.remove('active');
+            btnShopSelectNext.disabled = true;
+        }
+    }
+
+    // 2. Von der Shop-Wahl zur finalen Review
+    btnShopSelectNext.addEventListener('click', () => {
+        if (!sellTargetShopId) return;
+        shopSelectScreen.classList.add('hidden');
+        openSellReviewScreen();
+    });
+
+    // 3. Finale Verkaufs-Zusammenfassung rendern
+    window.openSellReviewScreen = function() {
+        const db = loadDatabase();
+        const shop = db.shops.find(s => s.id === sellTargetShopId);
+        const sourceContainer = db.containers[currentDetailIndex];
+
+        // A. Shop Card (Grün, da Ziel)
+        const avatarHtml = shop.image 
+            ? `<img src="${shop.image}" class="list-avatar" style="width: 50px; height: 50px;">` 
+            : `<div class="list-avatar" style="width: 50px; height: 50px;"><i class="fa-solid fa-store" style="color:#666;"></i></div>`;
+
+        document.getElementById('sell-review-shop').innerHTML = `
+            <div class="live-card card-green">
+                <div style="display: flex; align-items: center; width: 100%;">
+                    ${avatarHtml}
+                    <div class="card-info">
+                        <div class="card-title">${shop.name}</div>
+                        <div class="card-detail" style="color: rgba(255,255,255,0.7);">Destination Shop</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // B. Source Container Card (Rot, da Quelle)
+        document.getElementById('sell-review-from').innerHTML = createFullCardHTML(sourceContainer, 'red', 'sell-from');
+        renderReviewQRCode(sourceContainer.id, 'qr-sell-from', false);
+
+        // C. Selected Blocks (Blau, mit Swipe-Carousel falls mehrere)
+        const whatContainer = document.getElementById('sell-review-what');
+        let carouselHTML = `<div class="block-carousel" id="sell-block-carousel">`;
+        let dotsHTML = `<div class="carousel-dots" id="sell-carousel-dots">`;
+
+        tempExchangeBlocks.forEach((block, index) => {
+            carouselHTML += `
+                <div class="carousel-slide">
+                    ${createFullCardHTML(block, 'blue', `sell-what-${index}`)}
+                </div>
+            `;
+            dotsHTML += `<div class="carousel-dot ${index === 0 ? 'active' : ''}"></div>`;
+        });
+
+        carouselHTML += `</div>`;
+        dotsHTML += `</div>`;
+        
+        whatContainer.innerHTML = carouselHTML + (tempExchangeBlocks.length > 1 ? dotsHTML : '');
+
+        // D. QR Codes für Blöcke rendern
+        tempExchangeBlocks.forEach((block, index) => {
+            renderReviewQRCode(block.id, `qr-sell-what-${index}`, true);
+        });
+
+        sellReviewScreen.classList.remove('hidden');
+
+        // Carousel Logik aktivieren
+        if (tempExchangeBlocks.length > 1) {
+            const carousel = document.getElementById('sell-block-carousel');
+            const dots = document.querySelectorAll('#sell-carousel-dots .carousel-dot');
+            
+            carousel.addEventListener('scroll', () => {
+                const activeIndex = Math.round(carousel.scrollLeft / carousel.offsetWidth);
+                dots.forEach(d => d.classList.remove('active'));
+                if(dots[activeIndex]) dots[activeIndex].classList.add('active');
+            });
+        }
+    };
+
+    window.closeSellReviewScreen = function() {
+        sellReviewScreen.classList.add('hidden');
+        shopSelectScreen.classList.remove('hidden'); // Zurück zur Shop-Auswahl
+    };
+
+    // 4. Der finale Sell-Button (Vorerst nur ein Alert)
+    document.getElementById('btn-confirm-sell').addEventListener('click', () => {
+        alert("Perfekt, Nikita. Der Verkaufs-Flow steht. Sag Bescheid, wenn wir die Speicher- und Transferlogik im Hintergrund scharfschalten sollen!");
+    });
 });
