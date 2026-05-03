@@ -646,8 +646,13 @@ window.closeNewContainerScreen = function() {
                     displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
                 }
 
-                const shopItem = document.createElement('div');
+          const shopItem = document.createElement('div');
                 shopItem.className = 'live-card'; 
+                shopItem.style.cursor = 'pointer'; 
+                
+                // Der Index wird übergeben, um den richtigen Shop zu laden
+                const currentIndex = index; 
+                shopItem.addEventListener('click', () => openShopDetailScreen(currentIndex));
                 
                 const avatarHtml = shop.image 
                     ? `<img src="${shop.image}" class="list-avatar">` 
@@ -1784,11 +1789,19 @@ const opt = {
             return;
         }
 
+  const now = new Date();
+        const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
         const newShop = {
             id: generateUUID('S'),
             name: shopName,
             image: tempShopImageBase64,
-            date: new Date().toISOString().split('T')[0]
+            date: new Date().toISOString().split('T')[0],
+            history: [{
+                icon: 'fa-plus',
+                text: 'Shop im System angelegt',
+                time: timeString
+            }]
         };
 
         db.shops.push(newShop);
@@ -1799,4 +1812,72 @@ const opt = {
         listScreen.classList.remove('hidden');
         switchListTab('shops'); // Wechselt automatisch den Tab oben auf "Shops"
     });
+    // --- Shop Detail Screen Logic ---
+    let currentShopIndex = -1;
+
+    window.openShopDetailScreen = function(shopIndex) {
+        currentShopIndex = shopIndex;
+        const db = loadDatabase();
+        const shop = db.shops[shopIndex];
+        
+        if (!shop) return;
+
+        // Screens wechseln
+        listScreen.classList.add('hidden');
+        document.getElementById('shop-detail-screen').classList.remove('hidden');
+
+        // Datum formatieren
+        let displayDate = shop.date || '-';
+        if (displayDate && displayDate.includes('-')) {
+            const parts = displayDate.split('-');
+            displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
+
+        // Avatar auflösen
+        const avatarHtml = shop.image 
+            ? `<img src="${shop.image}" class="list-avatar">` 
+            : `<div class="list-avatar"><i class="fa-solid fa-store" style="color:#666;"></i></div>`;
+
+        // Card rendern (identisch zum Listen-Layout, aber ohne Hover/Klick)
+        document.getElementById('shop-detail-card-container').innerHTML = `
+            <div class="live-card">
+                <div style="display: flex; align-items: center; width: 100%;">
+                    ${avatarHtml}
+                    <div class="card-info">
+                        <div class="card-title">${shop.name}</div>
+                        <div class="card-detail">Added: ${displayDate}</div>
+                        <div class="card-detail" style="color: #0055ff;">0 Deliveries</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Historie rendern
+        const historyList = document.getElementById('shop-detail-history-list');
+        historyList.innerHTML = '';
+        
+        const historyData = shop.history || [];
+        
+        if (historyData.length === 0) {
+            historyList.innerHTML = '<p style="color: #666; font-size: 0.9rem;">Keine Historie vorhanden.</p>';
+        } else {
+            // Umdrehen, damit das Neueste oben steht
+            historyData.slice().reverse().forEach(entry => {
+                historyList.innerHTML += `
+                    <div class="history-item">
+                        <div class="history-icon"><i class="fa-solid ${entry.icon}"></i></div>
+                        <div class="history-info">
+                            <span class="history-text">${entry.text}</span>
+                            <span class="history-date">${entry.time}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    };
+
+    window.closeShopDetailScreen = function() {
+        document.getElementById('shop-detail-screen').classList.add('hidden');
+        listScreen.classList.remove('hidden');
+    };
 });
