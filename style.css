@@ -1152,15 +1152,20 @@ header {
 .carousel-dot.active {
     background-color: #0055ff;
 }
-/* --- PDF Export Theme (Print & White-Label) --- */
-#pdf-export-container {
-    position: absolute;
-    top: -9999px; /* Versteckt den Container außerhalb des Bildschirms */
+.pdf-export-wrapper {
+    position: fixed;
+    top: 0;
     left: 0;
+    width: 100vw;
+    height: 0; /* Zwingt den Container auf 0 Sichtbarkeit im UI */
+    overflow: hidden;
+    z-index: -1;
+}
+
+#pdf-export-container {
     width: 800px; /* Feste Breite für hochauflösenden A4-Druck */
     background-color: #fff;
     color: #000;
-    z-index: -1;
 }
 
 .pdf-page {
