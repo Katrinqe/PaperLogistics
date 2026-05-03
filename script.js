@@ -862,8 +862,20 @@ const listItem = document.createElement('div');
         }, 50);
     });
 
-    // LÖSCHEN POPUP ÖFFNEN
+// LÖSCHEN POPUP ÖFFNEN
     document.getElementById('btn-delete-container').addEventListener('click', () => {
+        const db = loadDatabase();
+        const container = db.containers[currentDetailIndex];
+        const titleEl = document.querySelector('#delete-popup .popup-title');
+        
+        // Dynamischer Text im Popup, damit du weißt, was genau gelöscht wird
+        if (currentDetailSlideIndex > 0) {
+            const blockName = container.blocks[currentDetailSlideIndex - 1].name;
+            if (titleEl) titleEl.textContent = `Block "${blockName}" löschen?`;
+        } else {
+            if (titleEl) titleEl.textContent = `Container "${container.name}" löschen?`;
+        }
+        
         deletePopup.classList.remove('hidden');
     });
 
@@ -875,15 +887,46 @@ const listItem = document.createElement('div');
     // LÖSCHEN BESTÄTIGEN (Yes)
     document.getElementById('btn-popup-yes').addEventListener('click', () => {
         const db = loadDatabase();
-        // Schneidet exakt diesen einen Container aus dem Array heraus
-        db.containers.splice(currentDetailIndex, 1);
-        saveDatabase(db);
-
-        deletePopup.classList.add('hidden');
-        detailScreen.classList.add('hidden');
-        listScreen.classList.remove('hidden');
         
-        renderListScreen(); // Liste ohne den gelöschten Container neu zeichnen
+        if (currentDetailSlideIndex > 0) {
+            // --- BLOCK LÖSCHEN ---
+            const container = db.containers[currentDetailIndex];
+            const blockIndex = currentDetailSlideIndex - 1;
+            const blockName = container.blocks[blockIndex].name;
+            
+            // 1. Block physisch aus dem Array entfernen
+            container.blocks.splice(blockIndex, 1);
+            
+            // 2. Den Löschvorgang in die Historie des Containers schreiben!
+            const now = new Date();
+            const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            if (!container.history) container.history = [];
+            container.history.push({
+                icon: 'fa-trash',
+                text: `Block "${blockName}" gelöscht`,
+                time: timeString
+            });
+            
+            db.containers[currentDetailIndex] = container;
+            saveDatabase(db);
+            
+            deletePopup.classList.add('hidden');
+            
+            // 3. Ansicht neu laden und sicherheitshalber auf den Container (Slide 0) zurückspringen
+            openDetailScreen(currentDetailIndex, 0); 
+            
+        } else {
+            // --- CONTAINER LÖSCHEN ---
+            db.containers.splice(currentDetailIndex, 1);
+            saveDatabase(db);
+
+            deletePopup.classList.add('hidden');
+            detailScreen.classList.add('hidden');
+            listScreen.classList.remove('hidden');
+            
+            renderListScreen(); 
+        }
     });
 
 // --- Scanner Logic (ZXing Engine) ---
