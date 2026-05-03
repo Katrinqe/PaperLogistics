@@ -1296,7 +1296,7 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         if (!targetContainer.blocks) targetContainer.blocks = [];
         targetContainer.blocks.push(...tempExchangeBlocks);
 
-        // 3. Audit-Trail (Historie) für BEIDE Container schreiben
+       // 3. Audit-Trail (Historie) für Container UND Blöcke schreiben
         const now = new Date();
         const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         
@@ -1317,6 +1317,31 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
             icon: 'fa-right-left',
             text: `${blockText} von ${sourceContainer.name} erhalten`,
             time: timeString
+        });
+
+        // WICHTIG: Historie für JEDEN EINZELNEN Block schreiben
+        tempExchangeBlocks.forEach(block => {
+            // Wenn der Block noch eine "leere Akte" hatte, speichern wir das Erstellungsdatum nachträglich hart ab
+            if (!block.history) {
+                // Wir nutzen die alte formatDisplayDate Logik für das Fallback-Datum
+                let fallbackDate = block.date || sourceContainer.date || timeString;
+                if (fallbackDate && fallbackDate.includes('-')) {
+                    const parts = fallbackDate.split('-');
+                    fallbackDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                }
+                block.history = [{
+                    icon: 'fa-plus',
+                    text: 'Block Created',
+                    time: fallbackDate
+                }];
+            }
+            
+            // Jetzt den neuen Transfer-Eintrag anhängen
+            block.history.push({
+                icon: 'fa-right-left',
+                text: `Umgelagert aus ${sourceContainer.name}`,
+                time: timeString
+            });
         });
 
         // 4. Datenbank speichern
