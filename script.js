@@ -452,8 +452,17 @@ window.closeNewContainerScreen = function() {
             history: [] // Das neue Array für den Audit-Trail
         };
 
- childStates.forEach(child => {
+// Hole die alten Container-Daten für den präzisen Vorher-Nachher-Vergleich
+        const oldContainer = isEditMode ? db.containers[currentDetailIndex] : null;
+
+        childStates.forEach(child => {
             let blockHistory = child.history || [];
+            
+            // Aufgelöste Werte (Fallback auf Container-Werte, falls beim Block nichts Spezifisches steht)
+            const resolvedFormat = child.format || masterState.format;
+            const resolvedPrice = child.price || masterState.price;
+            const resolvedQuality = child.quality || masterState.quality;
+            const resolvedDate = child.date || masterState.date;
 
             // 1. Wenn der Block brandneu ist (noch keine Historie hat)
             if (blockHistory.length === 0) {
@@ -463,24 +472,39 @@ window.closeNewContainerScreen = function() {
                     time: timeString
                 });
             } 
-            // 2. Wenn es ein bestehender Block ist, der bearbeitet wurde
-            else if (isEditMode) {
-                blockHistory.push({
-                    icon: 'fa-pen',
-                    text: 'Daten aktualisiert',
-                    time: timeString
-                });
+            // 2. Wenn es ein bestehender Block ist, prüfen wir auf ECHTE, individuelle Änderungen
+            else if (isEditMode && oldContainer) {
+                const oldBlock = (oldContainer.blocks || []).find(b => b.id === child.id);
+                
+                if (oldBlock) {
+                    // Prüfen, ob sich irgendein relevanter Wert für genau diesen Block geändert hat
+                    const isChanged = (
+                        oldBlock.name !== child.name ||
+                        oldBlock.format !== resolvedFormat ||
+                        oldBlock.price !== resolvedPrice ||
+                        oldBlock.quality !== resolvedQuality ||
+                        oldBlock.date !== resolvedDate
+                    );
+
+                    if (isChanged) {
+                        blockHistory.push({
+                            icon: 'fa-pen',
+                            text: 'Daten aktualisiert',
+                            time: timeString
+                        });
+                    }
+                }
             }
 
             containerData.blocks.push({
                 id: child.id,
                 name: child.name, 
-                format: child.format || masterState.format,
-                price: child.price || masterState.price,
-                quality: child.quality || masterState.quality,
-                date: child.date || masterState.date,
+                format: resolvedFormat,
+                price: resolvedPrice,
+                quality: resolvedQuality,
+                date: resolvedDate,
                 status: child.status || 'available',
-                history: blockHistory // <--- Die aktualisierte Akte wird in die Datenbank geschrieben
+                history: blockHistory // Nur die Blöcke mit echten Änderungen bekommen hier den neuen Eintrag
             });
         });
 
