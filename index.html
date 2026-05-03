@@ -292,6 +292,46 @@
                 <button id="btn-exchange-target" class="btn-exchange-target disabled" disabled>Target</button>
             </div>
         </div>
+
+        <!-- === SCREEN 7: REVIEW EXCHANGE === -->
+        <div id="review-exchange-screen" class="screen hidden">
+            <div class="scan-header">
+                <button class="back-arrow" onclick="cancelReviewExchange()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2>REVIEW TRANSFER</h2>
+                <div style="width: 30px;"></div>
+            </div>
+            
+            <div class="review-content" style="flex: 1; overflow-y: auto; padding-bottom: 100px;">
+                <h3 class="section-label">FROM</h3>
+                <div id="review-from-container"></div>
+
+                <h3 class="section-label">TO</h3>
+                <div id="review-to-container"></div>
+
+                <h3 class="section-label">WHAT</h3>
+                <div id="review-what-container"></div>
+            </div>
+            
+            <div class="exchange-bottom-bar">
+                <button class="btn-exchange-back" onclick="cancelReviewExchange()">Back</button>
+                <button id="btn-confirm-exchange" class="btn-exchange-target active">Confirm</button>
+            </div>
+        </div>
+
+        <!-- === CONFLICT POPUP (Umbenennen) === -->
+        <div id="conflict-popup" class="popup-overlay hidden">
+            <div class="popup-box">
+                <h3>Name Conflict</h3>
+                <p>Der Block <strong id="conflict-block-name" style="color: #0055ff;"></strong> existiert im Ziel bereits. Bitte umbenennen:</p>
+                <input type="text" id="conflict-new-name" class="v2-input" placeholder="New Name">
+                <div class="popup-buttons" style="margin-top: 15px;">
+                    <button id="btn-conflict-cancel" class="btn-popup-cancel">Cancel</button>
+                    <button id="btn-conflict-apply" class="btn-popup-confirm">Apply</button>
+                </div>
+            </div>
+        </div>
 <!-- === DELETE CONFIRMATION POPUP === -->
 <!-- === DELETE CONFIRMATION POPUP === -->
         <div id="delete-popup" class="hidden">
