@@ -631,7 +631,7 @@ window.closeNewContainerScreen = function() {
             });
 
         } else if (currentListTab === 'shops') {
-            // ==========================================
+       // ==========================================
             // TAB 2: NUR SHOPS
             // ==========================================
             if (!db.shops || db.shops.length === 0) {
@@ -639,18 +639,19 @@ window.closeNewContainerScreen = function() {
                 return;
             }
 
-            db.shops.forEach((shop) => {
+            // HIER WURDE DAS ", index" HINZUGEFÜGT
+            db.shops.forEach((shop, index) => { 
                 let displayDate = shop.date || '-';
                 if (displayDate && displayDate.includes('-')) {
                     const parts = displayDate.split('-');
                     displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
                 }
 
-          const shopItem = document.createElement('div');
+                const shopItem = document.createElement('div');
                 shopItem.className = 'live-card'; 
                 shopItem.style.cursor = 'pointer'; 
                 
-                // Der Index wird übergeben, um den richtigen Shop zu laden
+                // Der Index wird jetzt fehlerfrei übergeben
                 const currentIndex = index; 
                 shopItem.addEventListener('click', () => openShopDetailScreen(currentIndex));
                 
