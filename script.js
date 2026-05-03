@@ -452,7 +452,26 @@ window.closeNewContainerScreen = function() {
             history: [] // Das neue Array für den Audit-Trail
         };
 
-        childStates.forEach(child => {
+ childStates.forEach(child => {
+            let blockHistory = child.history || [];
+
+            // 1. Wenn der Block brandneu ist (noch keine Historie hat)
+            if (blockHistory.length === 0) {
+                blockHistory.push({
+                    icon: 'fa-plus',
+                    text: 'Block Created',
+                    time: timeString
+                });
+            } 
+            // 2. Wenn es ein bestehender Block ist, der bearbeitet wurde
+            else if (isEditMode) {
+                blockHistory.push({
+                    icon: 'fa-pen',
+                    text: 'Daten aktualisiert',
+                    time: timeString
+                });
+            }
+
             containerData.blocks.push({
                 id: child.id,
                 name: child.name, 
@@ -460,7 +479,8 @@ window.closeNewContainerScreen = function() {
                 price: child.price || masterState.price,
                 quality: child.quality || masterState.quality,
                 date: child.date || masterState.date,
-                status: child.status || 'available' 
+                status: child.status || 'available',
+                history: blockHistory // <--- Die aktualisierte Akte wird in die Datenbank geschrieben
             });
         });
 
@@ -768,7 +788,7 @@ const listItem = document.createElement('div');
             date: container.date || ''
         };
 
-        // ChildStates mit den existierenden Blöcken füllen
+   // ChildStates mit den existierenden Blöcken füllen
         childStates = [];
         if (container.blocks) {
             container.blocks.forEach(b => {
@@ -779,7 +799,8 @@ const listItem = document.createElement('div');
                     price: b.price,
                     quality: b.quality,
                     date: b.date,
-                    status: b.status || 'available'
+                    status: b.status || 'available',
+                    history: b.history // <--- GANZ WICHTIG: Die Akte des Blocks wird mit in den Editor genommen!
                 });
             });
         }
