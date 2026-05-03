@@ -1281,5 +1281,7 @@ header {
 .pdf-block-wrapper {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    display: block; /* Zwingend notwendig, damit html2pdf die Box-Grenzen exakt erkennt */
+    display: inline-block; /* Der ultimative html2canvas Fix für unteilbare Boxen */
+    width: 100%; /* Zwingt die Box wieder auf volle Breite, da inline-block sie sonst schrumpfen würde */
+    vertical-align: top;
 }
