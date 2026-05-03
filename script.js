@@ -824,4 +824,43 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         scanScreen.classList.add('hidden');
         homeScreen.classList.remove('hidden');
     };
+
+    // --- Export & Print Actions ---
+    document.getElementById('btn-print-qr').addEventListener('click', () => {
+        const db = loadDatabase();
+        const container = db.containers[currentDetailIndex];
+        if (!container) return;
+
+        // 1. Generiere eine hochauflösende, unsichtbare Version des QR-Codes für den perfekten Druck
+        const printConfig = getQRConfig(false);
+        printConfig.data = container.id;
+        printConfig.width = 1024;  // 1024x1024 Pixel für gestochen scharfen Druck
+        printConfig.height = 1024;
+        
+        const qrCode = new QRCodeStyling(printConfig);
+        
+        // 2. Löst den nativen Download-Dialog des Betriebssystems aus (speichert als PNG)
+        qrCode.download({
+            name: `${container.name}_QR`,
+            extension: "png"
+        });
+
+        // 3. Intelligenten Audit-Trail Eintrag hinzufügen
+        const now = new Date();
+        const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        // Falls aus irgendeinem Grund noch kein History-Array da ist, sicherheitshalber anlegen
+        if (!container.history) container.history = [];
+        
+        container.history.push({
+            icon: 'fa-print',
+            text: 'QR-Code gespeichert',
+            time: timeString
+        });
+
+        // 4. Datenbank speichern und Ansicht aktualisieren, damit der neue Eintrag sofort sichtbar ist
+        db.containers[currentDetailIndex] = container;
+        saveDatabase(db);
+        openDetailScreen(currentDetailIndex);
+    });
 });
