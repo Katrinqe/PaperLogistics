@@ -1511,12 +1511,15 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
                     <div class="pdf-section-title">BLOCK DOSSIERS</div>
             `;
 
-            container.blocks.forEach((block, index) => {
+    container.blocks.forEach((block, index) => {
                 pdfHtml += `
-                    ${buildPdfCardHtml(block, false, `b${index}`)}
-                    <div class="pdf-history-title">Block History</div>
-                    ${buildPdfHistoryHtml(block.history)}
-                    <div style="margin-bottom: 50px;"></div> <!-- Abstand zwischen den Blöcken -->
+                    <!-- Der neue Wrapper, der das Zerschneiden durch die PDF-Engine blockiert -->
+                    <div class="pdf-block-wrapper">
+                        ${buildPdfCardHtml(block, false, `b${index}`)}
+                        <div class="pdf-history-title">Block History</div>
+                        ${buildPdfHistoryHtml(block.history)}
+                        <div style="margin-bottom: 50px;"></div>
+                    </div>
                 `;
             });
 
