@@ -551,7 +551,9 @@ window.closeNewContainerScreen = function() {
         renderListScreen();
     });
 
- // --- List Screen Navigation ---
+// --- List Screen Navigation & Tab Logic ---
+    let currentListTab = 'qrcodes'; // Startet immer bei den QR Codes
+
     document.getElementById('btn-list').addEventListener('click', () => {
         homeScreen.classList.add('hidden');
         listScreen.classList.remove('hidden');
@@ -562,8 +564,6 @@ window.closeNewContainerScreen = function() {
         listScreen.classList.add('hidden');
         homeScreen.classList.remove('hidden');
     };
-// --- List Screen Tab Logic ---
-    let currentListTab = 'qrcodes'; // 'qrcodes' oder 'shops'
 
     window.switchListTab = function(tabName) {
         currentListTab = tabName;
@@ -573,112 +573,19 @@ window.closeNewContainerScreen = function() {
         document.getElementById('tab-shops').classList.remove('active');
         document.getElementById(`tab-${tabName}`).classList.add('active');
         
+        // Liste sofort und sauber neu zeichnen
         renderListScreen();
     };
 
-    // Ersetze deine bisherige renderListScreen() Funktion durch diese:
-    window.renderListScreen = function() {
-        qrListContent.innerHTML = ''; 
-        const db = loadDatabase();
-
-        if (currentListTab === 'qrcodes') {
-            // --- CONTAINERS RENDERN (Wie bisher) ---
-            db.containers.forEach((container, index) => {
-                function getListAggregated(key) {
-                    let values = new Set();
-                    if (container[key]) values.add(container[key]);
-                    if (container.blocks) container.blocks.forEach(block => { if (block[key]) values.add(block[key]); });
-                    return Array.from(values).join(' / ') || '-';
-                }
-
-                let displayDate = container.date || '-';
-                if (displayDate && displayDate.includes('-')) {
-                    const parts = displayDate.split('-');
-                    displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
-                }
-
-                const listItem = document.createElement('div');
-                listItem.className = 'live-card'; 
-                listItem.style.cursor = 'pointer'; 
-                listItem.addEventListener('click', () => openDetailScreen(index));
-                
-                listItem.innerHTML = `
-                    <div class="card-info">
-                        <div class="card-title">${container.name}</div>
-                        <div class="card-detail">Format: ${getListAggregated('format')}</div>
-                        <div class="card-detail">Price: ${getListAggregated('price')}</div>
-                        <div class="card-detail">Quality: ${getListAggregated('quality')}</div>
-                        <div class="card-detail">Date: ${displayDate}</div>
-                    </div>
-                    <div class="card-qr-box" id="qr-code-${index}"></div>
-                `;
-                qrListContent.appendChild(listItem);
-
-                const listQRConfig = getQRConfig(false);
-                listQRConfig.data = container.id; listQRConfig.width = 85; listQRConfig.height = 85;
-                new QRCodeStyling(listQRConfig).append(document.getElementById(`qr-code-${index}`));
-            });
-
-            if (db.containers.length === 0) qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Containers yet.</p>';
-            
-        } else {
-            // --- SHOPS RENDERN (Neu) ---
-            db.shops.forEach((shop, index) => {
-                let displayDate = shop.date || '-';
-                if (displayDate && displayDate.includes('-')) {
-                    const parts = displayDate.split('-');
-                    displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
-                }
-
-                const shopItem = document.createElement('div');
-                shopItem.className = 'live-card'; 
-                
-                // Avatar ermitteln (Bild oder Standard-Icon)
-                const avatarHtml = shop.image 
-                    ? `<img src="${shop.image}" class="list-avatar">` 
-                    : `<div class="list-avatar"><i class="fa-solid fa-store" style="color:#666;"></i></div>`;
-
-                shopItem.innerHTML = `
-                    <div style="display: flex; align-items: center; width: 100%;">
-                        ${avatarHtml}
-                        <div class="card-info">
-                            <div class="card-title">${shop.name}</div>
-                            <div class="card-detail">Added: ${displayDate}</div>
-                            <div class="card-detail" style="color: #0055ff;">0 Deliveries</div> <!-- Platzhalter für später -->
-                        </div>
-                    </div>
-                `;
-                qrListContent.appendChild(shopItem);
-            });
-
-            if (db.shops.length === 0) qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Shops created yet.</p>';
-        }
-    };
-// --- List Screen Tab Logic ---
-    let currentListTab = 'qrcodes'; // Standardmäßig startet die Liste bei den QR Codes
-
-    window.switchListTab = function(tabName) {
-        currentListTab = tabName;
-        
-        // Buttons oben in der Leiste optisch umschalten
-        document.getElementById('tab-qrcodes').classList.remove('active');
-        document.getElementById('tab-shops').classList.remove('active');
-        document.getElementById(`tab-${tabName}`).classList.add('active');
-        
-        // Liste sofort neu zeichnen
-        renderListScreen();
-    };
-
-    // Die einzige, echte Render-Funktion für die Liste
     window.renderListScreen = function() {
         const qrListContent = document.getElementById('qr-list-content');
-        qrListContent.innerHTML = ''; // Zerstört den alten Inhalt komplett, bevor neu gezeichnet wird
+        qrListContent.innerHTML = ''; // Zerstört den kompletten alten Inhalt!
         
         const db = loadDatabase();
 
         if (currentListTab === 'qrcodes') {
             // ==========================================
-            // TAB 1: NUR QR CODES (CONTAINER) RENDERN
+            // TAB 1: NUR CONTAINER
             // ==========================================
             if (!db.containers || db.containers.length === 0) {
                 qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Containers created yet.</p>';
@@ -723,9 +630,9 @@ window.closeNewContainerScreen = function() {
                 new QRCodeStyling(listQRConfig).append(document.getElementById(`qr-code-${index}`));
             });
 
-        } else {
+        } else if (currentListTab === 'shops') {
             // ==========================================
-            // TAB 2: NUR SHOPS RENDERN
+            // TAB 2: NUR SHOPS
             // ==========================================
             if (!db.shops || db.shops.length === 0) {
                 qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Shops created yet.</p>';
@@ -742,7 +649,6 @@ window.closeNewContainerScreen = function() {
                 const shopItem = document.createElement('div');
                 shopItem.className = 'live-card'; 
                 
-                // Avatar ermitteln (Hochgeladenes Bild oder Standard-Icon)
                 const avatarHtml = shop.image 
                     ? `<img src="${shop.image}" class="list-avatar">` 
                     : `<div class="list-avatar"><i class="fa-solid fa-store" style="color:#666;"></i></div>`;
