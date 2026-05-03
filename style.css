@@ -967,3 +967,18 @@ header {
 .btn-exchange-back:active, .btn-exchange-target.active:active {
     transform: scale(0.95);
 }
+
+/* --- Review Exchange Screen --- */
+.section-label {
+    color: #888;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    margin: 20px 0 10px 0;
+    text-transform: uppercase;
+}
+
+#review-from-container, #review-to-container, #review-what-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
