@@ -831,11 +831,16 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         const container = db.containers[currentDetailIndex];
         if (!container) return;
 
-        // 1. Generiere eine hochauflösende, unsichtbare Version des QR-Codes für den perfekten Druck
+// 1. Generiere eine hochauflösende, unsichtbare Version des QR-Codes für den perfekten Druck
         const printConfig = getQRConfig(false);
         printConfig.data = container.id;
         printConfig.width = 1024;  // 1024x1024 Pixel für gestochen scharfen Druck
         printConfig.height = 1024;
+        
+        // ÜBERSCHREIBT die Transparenz mit einem harten, weißen Hintergrund für die Galerie
+        printConfig.backgroundOptions = { color: "#ffffff" }; 
+        // Fügt einen weißen Schutzrand (Quiet Zone) hinzu, der für das physische Drucken und Scannen extrem wichtig ist
+        printConfig.margin = 50; 
         
         const qrCode = new QRCodeStyling(printConfig);
         
