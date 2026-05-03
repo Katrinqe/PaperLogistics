@@ -386,14 +386,14 @@ window.closeNewContainerScreen = function() {
 
 
 
-    // Lädt die lokale Datenbank (falls vorhanden) oder erstellt eine leere
+// Lädt die lokale Datenbank (falls vorhanden) oder erstellt eine leere
     function loadDatabase() {
         const data = localStorage.getItem('paperlogistics_db');
-       const db = data ? JSON.parse(data) : { containers: [], shops: [] };
-        if (!db.shops) db.shops = []; // Sicherheits-Patch für bestehende DBs
+        const db = data ? JSON.parse(data) : { containers: [], shops: [], globalHistory: [] };
+        if (!db.shops) db.shops = []; 
+        if (!db.globalHistory) db.globalHistory = []; // Neues Array für den System-Log
         return db;
     }
-
     // Speichert die lokale Datenbank
     function saveDatabase(db) {
         localStorage.setItem('paperlogistics_db', JSON.stringify(db));
@@ -2122,8 +2122,123 @@ window.closeNewContainerScreen = function() {
         shopSelectScreen.classList.remove('hidden'); // Zurück zur Shop-Auswahl
     };
 
-    // 4. Der finale Sell-Button (Vorerst nur ein Alert)
+// 4. Der finale Sell-Button (Transaktion ausführen)
     document.getElementById('btn-confirm-sell').addEventListener('click', () => {
-        alert("Perfekt, Nikita. Der Verkaufs-Flow steht. Sag Bescheid, wenn wir die Speicher- und Transferlogik im Hintergrund scharfschalten sollen!");
+        const db = loadDatabase();
+        const sourceContainer = db.containers[currentDetailIndex];
+        const targetShopIndex = db.shops.findIndex(s => s.id === sellTargetShopId);
+        const targetShop = db.shops[targetShopIndex];
+
+        if (!sourceContainer || !targetShop) return;
+
+        const blockCount = tempExchangeBlocks.length;
+        const blockText = blockCount === 1 ? '1 block' : `${blockCount} blocks`;
+
+        // 1. Blöcke physisch aus dem Container löschen
+        const blockIdsToSell = tempExchangeBlocks.map(b => b.id);
+        sourceContainer.blocks = sourceContainer.blocks.filter(b => !blockIdsToSell.includes(b.id));
+
+        // 2. Zeitstempel generieren
+        const now = new Date();
+        const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        // 3. Container-Historie aktualisieren
+        if (!sourceContainer.history) sourceContainer.history = [];
+        sourceContainer.history.push({
+            icon: 'fa-cart-shopping',
+            text: `${blockCount} Blöcke an ${targetShop.name} verkauft`,
+            time: timeString
+        });
+
+        // 4. Shop-Historie aktualisieren
+        if (!targetShop.history) targetShop.history = [];
+        targetShop.history.push({
+            icon: 'fa-box-open',
+            text: `${blockCount} Blöcke erhalten (aus ${sourceContainer.name})`,
+            time: timeString
+        });
+
+        // 5. Globale System-Historie schreiben
+        db.globalHistory.push({
+            icon: 'fa-handshake',
+            title: 'Sale Completed',
+            text: `${blockCount} blocks from ${sourceContainer.name} sold to ${targetShop.name}.`,
+            time: timeString
+        });
+
+        // 6. Alles in die Datenbank brennen
+        db.containers[currentDetailIndex] = sourceContainer;
+        db.shops[targetShopIndex] = targetShop;
+        saveDatabase(db);
+
+        // 7. Puffer leeren
+        exchangeSelectedBlocks = [];
+        tempExchangeBlocks = [];
+        sellTargetShopId = null;
+        activeWorkflow = 'exchange';
+
+        // 8. Haptisches Feedback & Screen-Wechsel
+        if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+        
+        sellReviewScreen.classList.add('hidden');
+        document.getElementById('global-history-screen').classList.remove('hidden');
+        renderGlobalHistory();
+
+        // 9. Toast Popup anzeigen
+        showSuccessToast(`${blockCount} successfully sold to ${targetShop.name}`);
     });
+
+    // --- System UI Functions (Toasts & Global History) ---
+    
+    function showSuccessToast(message) {
+        const toast = document.getElementById('success-toast');
+        toast.textContent = message;
+        toast.classList.remove('hidden');
+        
+        // Zwingt den Browser, das Element zu registrieren, bevor die Klasse "show" angewendet wird (für die Animation)
+        void toast.offsetWidth; 
+        toast.classList.add('show');
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.classList.add('hidden'), 300);
+        }, 3000); // Verschwindet nach 3 Sekunden
+    }
+
+    const globalHistoryScreen = document.getElementById('global-history-screen');
+
+    document.getElementById('btn-global-history').addEventListener('click', () => {
+        document.getElementById('home-screen').classList.add('hidden');
+        globalHistoryScreen.classList.remove('hidden');
+        renderGlobalHistory();
+    });
+
+    window.closeGlobalHistoryScreen = function() {
+        globalHistoryScreen.classList.add('hidden');
+        document.getElementById('home-screen').classList.remove('hidden');
+    };
+
+    function renderGlobalHistory() {
+        const list = document.getElementById('global-history-list');
+        list.innerHTML = '';
+        const db = loadDatabase();
+        
+        if (!db.globalHistory || db.globalHistory.length === 0) {
+            list.innerHTML = '<p style="color:#888; text-align:center; margin-top:40px;">No history records yet.</p>';
+            return;
+        }
+        
+        db.globalHistory.slice().reverse().forEach(entry => {
+            list.innerHTML += `
+                <div class="global-history-entry">
+                    <div class="icon-box"><i class="fa-solid ${entry.icon}"></i></div>
+                    <div class="history-info">
+                        <div style="color:#fff; font-weight:600; font-size:1rem; margin-bottom:4px;">${entry.title}</div>
+                        <div style="color:#aaa; font-size:0.85rem; margin-bottom:4px;">${entry.text}</div>
+                        <div style="color:#666; font-size:0.75rem;">${entry.time}</div>
+                    </div>
+                </div>
+            `;
+        });
+    }
 });
