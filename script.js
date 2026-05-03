@@ -1389,4 +1389,159 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         // -> Die Live-Card aggregiert sich neu, die Blöcke sind weg, die Historie zeigt den neuen Eintrag.
         openDetailScreen(currentDetailIndex); 
     });
+    // --- PDF Export Logic ---
+
+    // Helfer: Datum formatieren
+    function formatPdfDate(dateStr) {
+        let displayDate = dateStr || '-';
+        if (displayDate && displayDate.includes('-')) {
+            const parts = displayDate.split('-');
+            displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
+        return displayDate;
+    }
+
+    // Helfer: Aggregation für die PDF-Card
+    function getPdfAggregated(item, key, isContainer) {
+        let values = new Set();
+        if (item[key]) values.add(item[key]);
+        if (isContainer && item.blocks) {
+            item.blocks.forEach(block => {
+                if (block[key]) values.add(block[key]);
+            });
+        }
+        return Array.from(values).join(' / ') || '-';
+    }
+
+    // Helfer: HTML für die Print-Card bauen
+    function buildPdfCardHtml(item, isContainer, qrIdSuffix) {
+        return `
+            <div class="pdf-card">
+                <div class="pdf-card-info">
+                    <div class="pdf-card-title">${item.name}</div>
+                    <div class="pdf-card-detail">ID: ${item.id}</div>
+                    <div class="pdf-card-detail">Format: ${getPdfAggregated(item, 'format', isContainer)}</div>
+                    <div class="pdf-card-detail">Price: ${getPdfAggregated(item, 'price', isContainer)}</div>
+                    <div class="pdf-card-detail">Quality: ${getPdfAggregated(item, 'quality', isContainer)}</div>
+                    <div class="pdf-card-detail">Date: ${formatPdfDate(item.date)}</div>
+                </div>
+                <div class="pdf-qr-box" id="pdf-qr-${qrIdSuffix}"></div>
+            </div>
+        `;
+    }
+
+    // Helfer: HTML für die Print-Historie bauen
+    function buildPdfHistoryHtml(historyArray) {
+        if (!historyArray || historyArray.length === 0) return '<p style="color:#888;">Keine Historie vorhanden.</p>';
+        
+        let html = `<div class="pdf-history-list">`;
+        // Wir iterieren umgedreht, neueste Aktion oben
+        historyArray.slice().reverse().forEach(entry => {
+            html += `
+                <div class="pdf-history-item">
+                    <span class="pdf-history-text">${entry.text}</span>
+                    <span class="pdf-history-date">${entry.time}</span>
+                </div>
+            `;
+        });
+        html += `</div>`;
+        return html;
+    }
+    document.getElementById('btn-export-pdf').addEventListener('click', async () => {
+        const db = loadDatabase();
+        const container = db.containers[currentDetailIndex];
+        if (!container) return;
+
+        // Eindeutige Document-ID und Zeitstempel generieren
+        const randomHex = Math.floor(Math.random() * 16777215).toString(16).toUpperCase().padStart(6, '0');
+        const docId = `DOC-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${randomHex}`;
+        
+        const now = new Date();
+        const printTime = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        let pdfHtml = '';
+
+        // --- SEITE 1: CONTAINER ---
+        pdfHtml += `
+            <div class="pdf-page">
+                <div class="pdf-header">
+                    <div>CREATED: ${printTime}</div>
+                    <div>DOC-ID: ${docId}</div>
+                </div>
+                <div class="pdf-section-title">CONTAINER DOSSIER</div>
+                ${buildPdfCardHtml(container, true, 'c')}
+                
+                <div class="pdf-history-title">Container History</div>
+                ${buildPdfHistoryHtml(container.history)}
+            </div>
+        `;
+
+        // --- SEITE 2+: BLÖCKE ---
+        if (container.blocks && container.blocks.length > 0) {
+            // Dies ist die magische Klasse von html2pdf, die einen harten Seitenumbruch erzwingt
+            pdfHtml += `<div class="html2pdf__page-break"></div>`;
+            
+            pdfHtml += `
+                <div class="pdf-page">
+                    <div class="pdf-header">
+                        <div>CREATED: ${printTime}</div>
+                        <div>DOC-ID: ${docId}</div>
+                    </div>
+                    <div class="pdf-section-title">BLOCK DOSSIERS</div>
+            `;
+
+            container.blocks.forEach((block, index) => {
+                pdfHtml += `
+                    ${buildPdfCardHtml(block, false, `b${index}`)}
+                    <div class="pdf-history-title">Block History</div>
+                    ${buildPdfHistoryHtml(block.history)}
+                    <div style="margin-bottom: 50px;"></div> <!-- Abstand zwischen den Blöcken -->
+                `;
+            });
+
+            pdfHtml += `</div>`; // Schließt die zweite Seite ab
+        }
+
+        const stagingArea = document.getElementById('pdf-export-container');
+        stagingArea.innerHTML = pdfHtml;
+
+        // QR-Codes in die Platzhalter des PDFs rendern
+        const qrConfig = getQRConfig(false); // Feste schwarze Konfiguration für sauberen Druck
+        qrConfig.width = 90;
+        qrConfig.height = 90;
+        qrConfig.margin = 0;
+        qrConfig.backgroundOptions = { color: "#ffffff" }; // Zwingend weißer Hintergrund
+
+        // Container QR
+        qrConfig.data = container.id;
+        new QRCodeStyling(qrConfig).append(document.getElementById('pdf-qr-c'));
+
+        // Block QRs
+        if (container.blocks) {
+            container.blocks.forEach((block, index) => {
+                const blockQrConfig = { ...qrConfig, data: block.id };
+                new QRCodeStyling(blockQrConfig).append(document.getElementById(`pdf-qr-b${index}`));
+            });
+        }
+
+        // --- PDF ENGINE STARTEN ---
+        // Kurzes visuelles Feedback für dich, dass der Prozess läuft
+        const originalBtnColor = document.getElementById('btn-export-pdf').style.backgroundColor;
+        document.getElementById('btn-export-pdf').style.backgroundColor = '#00C851';
+
+        const opt = {
+            margin:       0, // Margins regeln wir über das CSS-Padding der .pdf-page
+            filename:     `${container.name}_Dossier_${docId}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true }, // Scale 2 macht den Text gestochen scharf
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        // Konvertierung ausführen und Herunterladen
+        html2pdf().set(opt).from(stagingArea).save().then(() => {
+            // Aufräumen und Button zurücksetzen
+            stagingArea.innerHTML = '';
+            document.getElementById('btn-export-pdf').style.backgroundColor = originalBtnColor;
+        });
+    });
 });
