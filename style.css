@@ -1277,3 +1277,8 @@ header {
     font-size: 0.85rem;
     color: #777;
 }
+/* Verhindert das Zerschneiden von Blöcken zwischen zwei PDF-Seiten */
+.pdf-block-wrapper {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
