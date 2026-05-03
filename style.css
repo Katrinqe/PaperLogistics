@@ -897,8 +897,13 @@ header {
     cursor: pointer;
     position: relative;
     border: 1px solid #333;
+    margin-bottom: 15px; /* Sorgt für den sauberen Abstand zwischen den Blöcken */
 }
 
+/* Der letzte Block braucht keinen Abstand nach unten */
+.exchange-card:last-child {
+    margin-bottom: 0;
+}
 /* Ausgegrauter Zustand (Standard) */
 .exchange-card.unselected {
     opacity: 0.5;
