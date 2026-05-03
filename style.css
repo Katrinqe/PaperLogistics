@@ -1279,6 +1279,7 @@ header {
 }
 /* Verhindert das Zerschneiden von Blöcken zwischen zwei PDF-Seiten */
 .pdf-block-wrapper {
-    page-break-inside: avoid;
-    break-inside: avoid;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: block; /* Zwingend notwendig, damit html2pdf die Box-Grenzen exakt erkennt */
 }
