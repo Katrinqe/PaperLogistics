@@ -567,12 +567,12 @@ const listItem = document.createElement('div');
         listScreen.classList.add('hidden');
         detailScreen.classList.remove('hidden');
 
-        // Aggregations-Logik für die Card (Wiederverwendung)
-        function getDetailAggregated(key) {
+        // Aggregations-Logik (Container liest alle, Block liest nur sich selbst)
+        function getDetailAggregated(item, key, isContainer) {
             let values = new Set();
-            if (container[key]) values.add(container[key]);
-            if (container.blocks) {
-                container.blocks.forEach(block => {
+            if (item[key]) values.add(item[key]);
+            if (isContainer && item.blocks) {
+                item.blocks.forEach(block => {
                     if (block[key]) values.add(block[key]);
                 });
             }
@@ -580,55 +580,141 @@ const listItem = document.createElement('div');
         }
 
         // Datum formatieren
-        let displayDate = container.date;
-        if (displayDate && displayDate.includes('-')) {
-            const parts = displayDate.split('-');
-            displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+        function formatDisplayDate(dateStr) {
+            let displayDate = dateStr || '-';
+            if (displayDate && displayDate.includes('-')) {
+                const parts = displayDate.split('-');
+                displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+            }
+            return displayDate;
         }
 
-        // 2. Die 1:1 Live-Card in den Detail-Screen kopieren
-        detailCardContainer.innerHTML = `
-            <div class="live-card">
-                <div class="card-info">
-                    <div class="card-title">${container.name}</div>
-                    <div class="card-detail">Format: ${getDetailAggregated('format')}</div>
-                    <div class="card-detail">Price: ${getDetailAggregated('price')}</div>
-                    <div class="card-detail">Quality: ${getDetailAggregated('quality')}</div>
-                    <div class="card-detail">Date: ${displayDate}</div>
+        const blocks = container.blocks || [];
+
+        // 2. Carousel HTML aufbauen
+        let carouselHTML = `<div class="block-carousel" id="detail-block-carousel">`;
+        let dotsHTML = `<div class="carousel-dots" id="detail-carousel-dots" style="margin-bottom: 20px;">`; 
+
+        // Slide 0: Container Card (Immer an erster Stelle)
+        carouselHTML += `
+            <div class="carousel-slide">
+                <div class="live-card">
+                    <div class="card-info">
+                        <div class="card-title">${container.name}</div>
+                        <div class="card-detail">Format: ${getDetailAggregated(container, 'format', true)}</div>
+                        <div class="card-detail">Price: ${getDetailAggregated(container, 'price', true)}</div>
+                        <div class="card-detail">Quality: ${getDetailAggregated(container, 'quality', true)}</div>
+                        <div class="card-detail">Date: ${formatDisplayDate(container.date)}</div>
+                    </div>
+                    <div class="card-qr-box" id="qr-detail-c"></div>
                 </div>
-                <div class="card-qr-box" id="qr-detail-c"></div>
             </div>
         `;
+        dotsHTML += `<div class="carousel-dot active"></div>`;
 
-        // QR Code im Detail-Screen generieren
+        // Slide 1 bis N: Block Cards (In Blau)
+        blocks.forEach((block, index) => {
+            carouselHTML += `
+                <div class="carousel-slide">
+                    <div class="live-card card-blue">
+                        <div class="card-info">
+                            <div class="card-title">${block.name}</div>
+                            <div class="card-detail">Format: ${getDetailAggregated(block, 'format', false)}</div>
+                            <div class="card-detail">Price: ${getDetailAggregated(block, 'price', false)}</div>
+                            <div class="card-detail">Quality: ${getDetailAggregated(block, 'quality', false)}</div>
+                            <div class="card-detail">Date: ${formatDisplayDate(block.date || container.date)}</div>
+                        </div>
+                        <div class="card-qr-box" id="qr-detail-b${index}"></div>
+                    </div>
+                </div>
+            `;
+            dotsHTML += `<div class="carousel-dot"></div>`;
+        });
+
+        carouselHTML += `</div>`;
+        dotsHTML += `</div>`;
+
+        // Ins DOM rendern (Dots nur anzeigen, wenn es auch Blöcke gibt)
+        detailCardContainer.innerHTML = carouselHTML + (blocks.length > 0 ? dotsHTML : '');
+
+        // 3. QR Codes in Echtzeit generieren
         const detailQRConfig = getQRConfig(false);
         detailQRConfig.data = container.id;
         detailQRConfig.width = 85; 
         detailQRConfig.height = 85;
         new QRCodeStyling(detailQRConfig).append(document.getElementById('qr-detail-c'));
 
-  // 3. Echte Historie aus der Datenbank rendern
-        detailHistoryList.innerHTML = '';
-        
-        // Fallback für alte Container, die noch kein History-Array haben
-        const historyData = container.history || [{
-            icon: 'fa-plus',
-            text: 'Container Created',
-            time: displayDate
-        }];
-
-        // Wir drehen das Array um (.slice().reverse()), damit die neueste Aktion immer oben steht
-        historyData.slice().reverse().forEach(entry => {
-            detailHistoryList.innerHTML += `
-                <div class="history-item">
-                    <div class="history-icon"><i class="fa-solid ${entry.icon}"></i></div>
-                    <div class="history-info">
-                        <span class="history-text">${entry.text}</span>
-                        <span class="history-date">${entry.time}</span>
-                    </div>
-                </div>
-            `;
+        blocks.forEach((block, index) => {
+            const blockQRConfig = getQRConfig(true);
+            blockQRConfig.data = block.id;
+            blockQRConfig.width = 85; 
+            blockQRConfig.height = 85;
+            new QRCodeStyling(blockQRConfig).append(document.getElementById(`qr-detail-b${index}`));
         });
+
+        // 4. Dynamische Historien-Engine
+        function renderHistory(activeIndex) {
+            detailHistoryList.innerHTML = '';
+            let historyData = [];
+
+            if (activeIndex === 0) {
+                // Container Historie (Fallback, falls noch nicht vorhanden)
+                historyData = container.history || [{
+                    icon: 'fa-plus',
+                    text: 'Container Created',
+                    time: formatDisplayDate(container.date)
+                }];
+            } else {
+                // Block Historie (Fallback, da Blöcke am Anfang keine eigene Historie haben)
+                const block = blocks[activeIndex - 1];
+                historyData = block.history || [{
+                    icon: 'fa-plus',
+                    text: 'Block Created',
+                    time: formatDisplayDate(block.date || container.date)
+                }];
+            }
+
+            historyData.slice().reverse().forEach(entry => {
+                detailHistoryList.innerHTML += `
+                    <div class="history-item">
+                        <div class="history-icon"><i class="fa-solid ${entry.icon}"></i></div>
+                        <div class="history-info">
+                            <span class="history-text">${entry.text}</span>
+                            <span class="history-date">${entry.time}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Initial History rendern (Startet immer beim Container)
+        renderHistory(0);
+
+        // 5. Swipe-Tracker aktivieren (Überwacht den Wisch-Winkel)
+        if (blocks.length > 0) {
+            const carousel = document.getElementById('detail-block-carousel');
+            const dots = document.querySelectorAll('#detail-carousel-dots .carousel-dot');
+            let lastActiveIndex = 0;
+
+            carousel.addEventListener('scroll', () => {
+                const activeIndex = Math.round(carousel.scrollLeft / carousel.offsetWidth);
+                
+                // Nur neu rendern, wenn wirklich eine neue Karte in der Mitte ist
+                if (activeIndex !== lastActiveIndex) {
+                    // Update Dots
+                    dots.forEach(d => d.classList.remove('active'));
+                    if(dots[activeIndex]) dots[activeIndex].classList.add('active');
+                    
+                    // Update Historie (Live!)
+                    renderHistory(activeIndex);
+                    
+                    // Haptisches Feedback beim Einrasten (falls vom Browser/OS erlaubt)
+                    if (navigator.vibrate) navigator.vibrate(10);
+                    
+                    lastActiveIndex = activeIndex;
+                }
+            });
+        }
     };
 
     window.closeDetailScreen = function() {
