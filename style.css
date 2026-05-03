@@ -673,16 +673,18 @@ header {
     margin-bottom: 20px;
 }
 
-#detail-title {
+/* Gilt jetzt für Container UND Shop */
+#detail-title, #shop-detail-title {
     font-size: 1.1rem;
     color: #fff;
     letter-spacing: 2px;
+    text-transform: uppercase; /* Zur Sicherheit, falls mal ein Buchstabe klein getippt wird */
 }
 
-#detail-card-container {
+/* Sorgt für den sauberen 25px Abstand zwischen Card und Historie bei Container UND Shop */
+#detail-card-container, #shop-detail-card-container {
     margin-bottom: 25px;
 }
-
 /* --- History Card --- */
 .history-card {
     background-color: #1a1a1a;
