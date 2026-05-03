@@ -914,20 +914,35 @@ window.closeNewContainerScreen = function() {
         }, 50);
     });
 
-// LÖSCHEN POPUP ÖFFNEN
+// --- Universal Delete Engine ---
+    const deletePopup = document.getElementById('delete-popup');
+    let deleteTargetMode = ''; // Kann 'container', 'block' oder 'shop' sein
+
+    // POPUP ÖFFNEN: CONTAINER ODER BLOCK
     document.getElementById('btn-delete-container').addEventListener('click', () => {
         const db = loadDatabase();
         const container = db.containers[currentDetailIndex];
         const titleEl = document.querySelector('#delete-popup .popup-title');
         
-        // Dynamischer Text im Popup, damit du weißt, was genau gelöscht wird
         if (currentDetailSlideIndex > 0) {
+            deleteTargetMode = 'block';
             const blockName = container.blocks[currentDetailSlideIndex - 1].name;
             if (titleEl) titleEl.textContent = `Block "${blockName}" löschen?`;
         } else {
+            deleteTargetMode = 'container';
             if (titleEl) titleEl.textContent = `Container "${container.name}" löschen?`;
         }
+        deletePopup.classList.remove('hidden');
+    });
+
+    // POPUP ÖFFNEN: SHOP
+    document.getElementById('btn-delete-shop').addEventListener('click', () => {
+        deleteTargetMode = 'shop';
+        const db = loadDatabase();
+        const shop = db.shops[currentShopIndex];
+        const titleEl = document.querySelector('#delete-popup .popup-title');
         
+        if (titleEl) titleEl.textContent = `Shop "${shop.name}" löschen?`;
         deletePopup.classList.remove('hidden');
     });
 
@@ -940,35 +955,37 @@ window.closeNewContainerScreen = function() {
     document.getElementById('btn-popup-yes').addEventListener('click', () => {
         const db = loadDatabase();
         
-        if (currentDetailSlideIndex > 0) {
+        if (deleteTargetMode === 'shop') {
+            // --- SHOP LÖSCHEN ---
+            db.shops.splice(currentShopIndex, 1);
+            saveDatabase(db);
+
+            deletePopup.classList.add('hidden');
+            document.getElementById('shop-detail-screen').classList.add('hidden');
+            listScreen.classList.remove('hidden');
+            renderListScreen(); 
+
+        } else if (deleteTargetMode === 'block') {
             // --- BLOCK LÖSCHEN ---
             const container = db.containers[currentDetailIndex];
             const blockIndex = currentDetailSlideIndex - 1;
             const blockName = container.blocks[blockIndex].name;
             
-            // 1. Block physisch aus dem Array entfernen
             container.blocks.splice(blockIndex, 1);
             
-            // 2. Den Löschvorgang in die Historie des Containers schreiben!
             const now = new Date();
             const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             
             if (!container.history) container.history = [];
-            container.history.push({
-                icon: 'fa-trash',
-                text: `Block "${blockName}" gelöscht`,
-                time: timeString
-            });
+            container.history.push({ icon: 'fa-trash', text: `Block "${blockName}" gelöscht`, time: timeString });
             
             db.containers[currentDetailIndex] = container;
             saveDatabase(db);
             
             deletePopup.classList.add('hidden');
-            
-            // 3. Ansicht neu laden und sicherheitshalber auf den Container (Slide 0) zurückspringen
             openDetailScreen(currentDetailIndex, 0); 
             
-        } else {
+        } else if (deleteTargetMode === 'container') {
             // --- CONTAINER LÖSCHEN ---
             db.containers.splice(currentDetailIndex, 1);
             saveDatabase(db);
@@ -976,7 +993,6 @@ window.closeNewContainerScreen = function() {
             deletePopup.classList.add('hidden');
             detailScreen.classList.add('hidden');
             listScreen.classList.remove('hidden');
-            
             renderListScreen(); 
         }
     });
@@ -1709,18 +1725,27 @@ const opt = {
             });
         }, 500);
     });
-    // --- New Shop Engine ---
+// --- New & Edit Shop Engine ---
     const newShopScreen = document.getElementById('new-shop-screen');
     const shopAvatarInput = document.getElementById('shop-avatar-input');
     const shopAvatarPreview = document.getElementById('shop-avatar-preview');
     let tempShopImageBase64 = null;
+    
+    // STATE TRACKER FÜR SHOPS
+    let isShopEditMode = false;
+    let editingShopIndex = -1;
 
-    // Öffnet den Screen (Bitte checke, ob 'btn-add-shop' der richtige ID-Name deines Buttons auf dem Home Screen ist!)
+    // CREATE MODUS: Öffnet den Screen vom Home-Dashboard
     document.getElementById('btn-add-shop').addEventListener('click', () => {
+        isShopEditMode = false;
+        editingShopIndex = -1;
+        
         homeScreen.classList.add('hidden');
         newShopScreen.classList.remove('hidden');
         
-        // Formular resetten
+        document.querySelector('#new-shop-screen h2').textContent = 'NEW SHOP';
+        
+        // Formular hart resetten
         document.getElementById('shop-name-input').value = '';
         shopAvatarPreview.src = '';
         shopAvatarPreview.classList.add('hidden');
@@ -1729,7 +1754,12 @@ const opt = {
 
     window.closeNewShopScreen = function() {
         newShopScreen.classList.add('hidden');
-        homeScreen.classList.remove('hidden');
+        // Smartes Routing beim Abbrechen
+        if (isShopEditMode) {
+            document.getElementById('shop-detail-screen').classList.remove('hidden');
+        } else {
+            homeScreen.classList.remove('hidden');
+        }
     };
 
     // Klick auf das Profilbild öffnet den Datei-Dialog
@@ -1772,11 +1802,37 @@ const opt = {
         reader.readAsDataURL(file);
     });
 
-    // Shop Speichern
+// EDIT MODUS: Öffnet den Screen aus den Shop-Details
+    document.getElementById('btn-edit-shop').addEventListener('click', () => {
+        const db = loadDatabase();
+        const shop = db.shops[currentShopIndex];
+        if (!shop) return;
+
+        isShopEditMode = true;
+        editingShopIndex = currentShopIndex;
+
+        document.getElementById('shop-detail-screen').classList.add('hidden');
+        newShopScreen.classList.remove('hidden');
+        
+        document.querySelector('#new-shop-screen h2').textContent = 'EDIT SHOP';
+
+        // Formular mit bestehenden Daten füllen
+        document.getElementById('shop-name-input').value = shop.name;
+        if (shop.image) {
+            tempShopImageBase64 = shop.image;
+            shopAvatarPreview.src = shop.image;
+            shopAvatarPreview.classList.remove('hidden');
+        } else {
+            tempShopImageBase64 = null;
+            shopAvatarPreview.src = '';
+            shopAvatarPreview.classList.add('hidden');
+        }
+    });
+    
+// Shop Speichern (Weiche für Create & Edit)
     document.getElementById('btn-confirm-shop').addEventListener('click', () => {
         const shopName = document.getElementById('shop-name-input').value.trim();
         
-        // Zwangseingabe (Wie besprochen: Keine Vorwahl, muss manuell eingegeben werden)
         if (!shopName) {
             alert("Bitte gib einen Namen für den Shop ein.");
             return;
@@ -1784,34 +1840,66 @@ const opt = {
 
         const db = loadDatabase();
         
-        // Check auf Namens-Duplikate bei Shops
-        if (db.shops.some(s => s.name.toLowerCase() === shopName.toLowerCase())) {
+        // Gatekeeper: Check auf Duplikate (Ignoriert den eigenen Namen im Edit-Modus)
+        const nameExists = db.shops.some((s, index) => {
+            if (isShopEditMode && index === editingShopIndex) return false;
+            return s.name.toLowerCase() === shopName.toLowerCase();
+        });
+
+        if (nameExists) {
             alert("Ein Shop mit diesem Namen existiert bereits!");
             return;
         }
 
-  const now = new Date();
+        const now = new Date();
         const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-        const newShop = {
-            id: generateUUID('S'),
-            name: shopName,
-            image: tempShopImageBase64,
-            date: new Date().toISOString().split('T')[0],
-            history: [{
-                icon: 'fa-plus',
-                text: 'Shop im System angelegt',
-                time: timeString
-            }]
-        };
+        if (isShopEditMode) {
+            // --- EDIT MODUS ---
+            const shop = db.shops[editingShopIndex];
+            
+            // Diff-Check: Hat sich überhaupt was geändert?
+            const isChanged = (shop.name !== shopName || shop.image !== tempShopImageBase64);
 
-        db.shops.push(newShop);
-        saveDatabase(db);
-        
-        // UI aufräumen und zur Shop-Liste springen
-        newShopScreen.classList.add('hidden');
-        listScreen.classList.remove('hidden');
-        switchListTab('shops'); // Wechselt automatisch den Tab oben auf "Shops"
+            shop.name = shopName;
+            shop.image = tempShopImageBase64;
+
+            if (isChanged) {
+                if (!shop.history) shop.history = [];
+                shop.history.push({
+                    icon: 'fa-pen',
+                    text: 'Daten aktualisiert',
+                    time: timeString
+                });
+            }
+            
+            db.shops[editingShopIndex] = shop;
+            saveDatabase(db);
+            
+            newShopScreen.classList.add('hidden');
+            openShopDetailScreen(editingShopIndex); // Lädt die Detailansicht hart neu
+
+        } else {
+            // --- CREATE MODUS ---
+            const newShop = {
+                id: generateUUID('S'),
+                name: shopName,
+                image: tempShopImageBase64,
+                date: new Date().toISOString().split('T')[0],
+                history: [{
+                    icon: 'fa-plus',
+                    text: 'Shop im System angelegt',
+                    time: timeString
+                }]
+            };
+
+            db.shops.push(newShop);
+            saveDatabase(db);
+            
+            newShopScreen.classList.add('hidden');
+            listScreen.classList.remove('hidden');
+            switchListTab('shops');
+        }
     });
     // --- Shop Detail Screen Logic ---
     let currentShopIndex = -1;
