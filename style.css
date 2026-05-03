@@ -1288,8 +1288,16 @@ header {
 
 /* --- Kontext-Sensible Action Bar (Block-Modus) --- */
 .detail-actions.block-mode .action-btn:not(.btn-danger) {
+    /* Setzt die Buttons wieder auf das Standard-Theme zurück (Grau/Schwarz) */
+    color: #fff;
+    border-color: #222;
+    background-color: #111;
+    box-shadow: none;
+}
+
+.detail-actions.block-mode .action-btn:not(.btn-danger) i {
+    /* Nur das Icon selbst fängt an zu leuchten */
     color: #0055ff;
-    border-color: rgba(0, 85, 255, 0.4);
-    background-color: rgba(0, 85, 255, 0.05);
-    box-shadow: inset 0 0 10px rgba(0, 85, 255, 0.05);
+    text-shadow: 0 0 12px rgba(0, 85, 255, 0.4); /* Leichter Premium-Glow */
+    transition: color 0.3s ease, text-shadow 0.3s ease;
 }
