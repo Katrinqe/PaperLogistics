@@ -389,7 +389,9 @@ window.closeNewContainerScreen = function() {
     // Lädt die lokale Datenbank (falls vorhanden) oder erstellt eine leere
     function loadDatabase() {
         const data = localStorage.getItem('paperlogistics_db');
-        return data ? JSON.parse(data) : { containers: [] };
+       const db = data ? JSON.parse(data) : { containers: [], shops: [] };
+        if (!db.shops) db.shops = []; // Sicherheits-Patch für bestehende DBs
+        return db;
     }
 
     // Speichert die lokale Datenbank
@@ -560,7 +562,98 @@ window.closeNewContainerScreen = function() {
         listScreen.classList.add('hidden');
         homeScreen.classList.remove('hidden');
     };
+// --- List Screen Tab Logic ---
+    let currentListTab = 'qrcodes'; // 'qrcodes' oder 'shops'
 
+    window.switchListTab = function(tabName) {
+        currentListTab = tabName;
+        
+        // Buttons umfärben
+        document.getElementById('tab-qrcodes').classList.remove('active');
+        document.getElementById('tab-shops').classList.remove('active');
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        
+        renderListScreen();
+    };
+
+    // Ersetze deine bisherige renderListScreen() Funktion durch diese:
+    window.renderListScreen = function() {
+        qrListContent.innerHTML = ''; 
+        const db = loadDatabase();
+
+        if (currentListTab === 'qrcodes') {
+            // --- CONTAINERS RENDERN (Wie bisher) ---
+            db.containers.forEach((container, index) => {
+                function getListAggregated(key) {
+                    let values = new Set();
+                    if (container[key]) values.add(container[key]);
+                    if (container.blocks) container.blocks.forEach(block => { if (block[key]) values.add(block[key]); });
+                    return Array.from(values).join(' / ') || '-';
+                }
+
+                let displayDate = container.date || '-';
+                if (displayDate && displayDate.includes('-')) {
+                    const parts = displayDate.split('-');
+                    displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                }
+
+                const listItem = document.createElement('div');
+                listItem.className = 'live-card'; 
+                listItem.style.cursor = 'pointer'; 
+                listItem.addEventListener('click', () => openDetailScreen(index));
+                
+                listItem.innerHTML = `
+                    <div class="card-info">
+                        <div class="card-title">${container.name}</div>
+                        <div class="card-detail">Format: ${getListAggregated('format')}</div>
+                        <div class="card-detail">Price: ${getListAggregated('price')}</div>
+                        <div class="card-detail">Quality: ${getListAggregated('quality')}</div>
+                        <div class="card-detail">Date: ${displayDate}</div>
+                    </div>
+                    <div class="card-qr-box" id="qr-code-${index}"></div>
+                `;
+                qrListContent.appendChild(listItem);
+
+                const listQRConfig = getQRConfig(false);
+                listQRConfig.data = container.id; listQRConfig.width = 85; listQRConfig.height = 85;
+                new QRCodeStyling(listQRConfig).append(document.getElementById(`qr-code-${index}`));
+            });
+
+            if (db.containers.length === 0) qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Containers yet.</p>';
+            
+        } else {
+            // --- SHOPS RENDERN (Neu) ---
+            db.shops.forEach((shop, index) => {
+                let displayDate = shop.date || '-';
+                if (displayDate && displayDate.includes('-')) {
+                    const parts = displayDate.split('-');
+                    displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                }
+
+                const shopItem = document.createElement('div');
+                shopItem.className = 'live-card'; 
+                
+                // Avatar ermitteln (Bild oder Standard-Icon)
+                const avatarHtml = shop.image 
+                    ? `<img src="${shop.image}" class="list-avatar">` 
+                    : `<div class="list-avatar"><i class="fa-solid fa-store" style="color:#666;"></i></div>`;
+
+                shopItem.innerHTML = `
+                    <div style="display: flex; align-items: center; width: 100%;">
+                        ${avatarHtml}
+                        <div class="card-info">
+                            <div class="card-title">${shop.name}</div>
+                            <div class="card-detail">Added: ${displayDate}</div>
+                            <div class="card-detail" style="color: #0055ff;">0 Deliveries</div> <!-- Platzhalter für später -->
+                        </div>
+                    </div>
+                `;
+                qrListContent.appendChild(shopItem);
+            });
+
+            if (db.shops.length === 0) qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Shops created yet.</p>';
+        }
+    };
 // --- List Rendering & QR Generation ---
     function renderListScreen() {
         qrListContent.innerHTML = ''; 
@@ -1656,5 +1749,101 @@ const opt = {
                 document.getElementById('btn-export-pdf').style.backgroundColor = originalBtnColor;
             });
         }, 500);
+    });
+    // --- New Shop Engine ---
+    const newShopScreen = document.getElementById('new-shop-screen');
+    const shopAvatarInput = document.getElementById('shop-avatar-input');
+    const shopAvatarPreview = document.getElementById('shop-avatar-preview');
+    let tempShopImageBase64 = null;
+
+    // Öffnet den Screen (Bitte checke, ob 'btn-add-shop' der richtige ID-Name deines Buttons auf dem Home Screen ist!)
+    document.getElementById('btn-add-shop').addEventListener('click', () => {
+        homeScreen.classList.add('hidden');
+        newShopScreen.classList.remove('hidden');
+        
+        // Formular resetten
+        document.getElementById('shop-name-input').value = '';
+        shopAvatarPreview.src = '';
+        shopAvatarPreview.classList.add('hidden');
+        tempShopImageBase64 = null;
+    });
+
+    window.closeNewShopScreen = function() {
+        newShopScreen.classList.add('hidden');
+        homeScreen.classList.remove('hidden');
+    };
+
+    // Klick auf das Profilbild öffnet den Datei-Dialog
+    document.getElementById('btn-shop-avatar').addEventListener('click', () => {
+        shopAvatarInput.click();
+    });
+
+    // Bild wird ausgewählt, komprimiert und als Base64 gespeichert
+    shopAvatarInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                // Komprimierung über Canvas (Schützt die Datenbank vor Abstürzen)
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const size = 300; // Profilbilder brauchen nicht mehr als 300x300 Pixel
+                
+                canvas.width = size;
+                canvas.height = size;
+                
+                // Zentrierter Crop (Quadratischer Ausschnitt)
+                const minSide = Math.min(img.width, img.height);
+                const startX = (img.width - minSide) / 2;
+                const startY = (img.height - minSide) / 2;
+                
+                ctx.drawImage(img, startX, startY, minSide, minSide, 0, 0, size, size);
+                
+                tempShopImageBase64 = canvas.toDataURL('image/jpeg', 0.7); // 70% Qualität reicht völlig
+                
+                // Vorschau anzeigen
+                shopAvatarPreview.src = tempShopImageBase64;
+                shopAvatarPreview.classList.remove('hidden');
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Shop Speichern
+    document.getElementById('btn-confirm-shop').addEventListener('click', () => {
+        const shopName = document.getElementById('shop-name-input').value.trim();
+        
+        // Zwangseingabe (Wie besprochen: Keine Vorwahl, muss manuell eingegeben werden)
+        if (!shopName) {
+            alert("Bitte gib einen Namen für den Shop ein.");
+            return;
+        }
+
+        const db = loadDatabase();
+        
+        // Check auf Namens-Duplikate bei Shops
+        if (db.shops.some(s => s.name.toLowerCase() === shopName.toLowerCase())) {
+            alert("Ein Shop mit diesem Namen existiert bereits!");
+            return;
+        }
+
+        const newShop = {
+            id: generateUUID('S'),
+            name: shopName,
+            image: tempShopImageBase64,
+            date: new Date().toISOString().split('T')[0]
+        };
+
+        db.shops.push(newShop);
+        saveDatabase(db);
+        
+        // UI aufräumen und zur Shop-Liste springen
+        newShopScreen.classList.add('hidden');
+        listScreen.classList.remove('hidden');
+        switchListTab('shops'); // Wechselt automatisch den Tab oben auf "Shops"
     });
 });
