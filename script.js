@@ -994,6 +994,8 @@ window.closeNewContainerScreen = function() {
         }
     }
 
+    }
+
     // Normaler Scan vom Home-Screen
     document.getElementById('btn-scan-qr').addEventListener('click', () => {
         scanMode = 'default';
