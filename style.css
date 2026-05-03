@@ -1403,3 +1403,52 @@ header {
 .shop-actions .action-btn {
     width: 100%;
 }
+
+/* --- Success Toast (Feedback Popup) --- */
+.toast {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #00C851; /* Erfolgs-Grün */
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    box-shadow: 0 5px 15px rgba(0, 200, 81, 0.4);
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.toast.show {
+    opacity: 1;
+}
+
+/* --- Global History List --- */
+.global-history-entry {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.global-history-entry .icon-box {
+    width: 45px; 
+    height: 45px;
+    border-radius: 50%; 
+    background-color: #222;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    color: #00C851; 
+    font-size: 1.2rem; 
+    flex-shrink: 0;
+}
