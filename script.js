@@ -727,6 +727,15 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
     const scanScreen = document.getElementById('scan-screen');
     const codeReader = new ZXing.BrowserMultiFormatReader();
     let isScanning = false;
+    let isStopping = false; 
+    
+    // NEUE STATE-VARIABLEN FÜR EXCHANGE
+    let scanMode = 'default'; 
+    let tempExchangeBlocks = []; 
+    let exchangeTargetContainerIndex = -1;
+
+    // Hilfsfunktion: Promise-basierter, kugelsicherer Cleanup
+    // ... (stopScanner Funktion unverändert lassen) ...
 
     // Hilfsfunktion: Hardware-Kamera physisch vom Video-Element trennen
     async function stopScanner() {
@@ -743,79 +752,76 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         }
     }
 
-// Öffnet den Scanner
-    document.getElementById('btn-scan-qr').addEventListener('click', async () => {
+// Zentralisierte Scanner-Start-Logik (kann jetzt von überall aufgerufen werden)
+    async function startScannerAction() {
         if (isScanning) return; // Guard
         isScanning = true;
 
-        homeScreen.classList.add('hidden');
+        homeScreen.classList.add('hidden'); // Schadet nicht, wenn er schon versteckt ist
         scanScreen.classList.remove('hidden');
 
-        // WICHTIG für iOS: Zwingt Apple, das Video nicht im Vollbild-Player zu öffnen
         document.getElementById('video-preview').setAttribute('playsinline', 'true');
 
         try {
-            // Der harte OS-Befehl: Zwingt das Gerät zur Rückkamera ("environment"), ohne auf Namen zu achten
-            const constraints = {
-                video: { facingMode: "environment" }
-            };
+            const constraints = { video: { facingMode: "environment" } };
 
-            // Startet den Scan-Loop direkt mit dem Hardware-Zwang
             codeReader.decodeFromConstraints(constraints, 'video-preview', async (result, err) => {
                 if (result) {
-                    // TREFFER!
-                    if (!isScanning) return; // Doppel-Scan Guard
+                    if (!isScanning) return;
                     isScanning = false;
                     
-                    // 1. Hardware-Kill sofort auslösen
-                    await stopScanner();
-                    
-                    // 2. Feedback (Vibration)
+                    try { await codeReader.pause(); } catch(e) {}
                     if (navigator.vibrate) navigator.vibrate(50);
                     
-                    // 3. Auswertung
-                    const decodedText = result.getText();
+                    await stopScanner();
                     scanScreen.classList.add('hidden');
                     
-                    const db = loadDatabase();
-                    let targetContainerIndex = -1;
-
-                    targetContainerIndex = db.containers.findIndex(c => c.id === decodedText);
-
-                    if (targetContainerIndex === -1) {
-                        for (let i = 0; i < db.containers.length; i++) {
-                            const container = db.containers[i];
-                            if (container.blocks && container.blocks.some(b => b.id === decodedText)) {
-                                targetContainerIndex = i;
-                                break;
-                            }
-                        }
-                    }
-
-                    // 4. Navigation
-                    if (targetContainerIndex !== -1) {
-                        openDetailScreen(targetContainerIndex);
+                    // NEU: Routing je nach Scan-Modus
+                    if (scanMode === 'exchange') {
+                        handleExchangeScan(result.getText());
                     } else {
-                        alert(`QR-Code (${decodedText}) gehört zu keinem Container im System.`);
-                        homeScreen.classList.remove('hidden');
+                        handleDefaultScan(result.getText());
                     }
                 }
-                
-                // Ignoriert harmlose Fehler (wenn im aktuellen Frame kein Code gefunden wurde)
-                if (err && !(err instanceof ZXing.NotFoundException)) {
-                    console.warn("ZXing Reader Error:", err);
-                }
+                if (err && !(err instanceof ZXing.NotFoundException)) console.warn("ZXing Reader Error:", err);
             });
-
         } catch (err) {
             console.error("Kamera-Fehler:", err);
-            alert("Kamera konnte nicht gestartet werden. Bitte erlaube den Zugriff.");
+            alert("Kamera konnte nicht gestartet werden.");
             await stopScanner();
             isScanning = false;
             scanScreen.classList.add('hidden');
             homeScreen.classList.remove('hidden');
         }
+    }
+
+    // Normaler Scan vom Home-Screen
+    document.getElementById('btn-scan-qr').addEventListener('click', () => {
+        scanMode = 'default';
+        startScannerAction();
     });
+
+    // Alte Navigation (ausgelagert aus onScanSuccess)
+    function handleDefaultScan(decodedText) {
+        const db = loadDatabase();
+        let targetContainerIndex = db.containers.findIndex(c => c.id === decodedText);
+
+        if (targetContainerIndex === -1) {
+            for (let i = 0; i < db.containers.length; i++) {
+                const container = db.containers[i];
+                if (container.blocks && container.blocks.some(b => b.id === decodedText)) {
+                    targetContainerIndex = i; break;
+                }
+            }
+        }
+
+        if (targetContainerIndex !== -1) {
+            openDetailScreen(targetContainerIndex);
+        } else {
+            alert(`QR-Code (${decodedText}) gehört zu keinem Container.`);
+            homeScreen.classList.remove('hidden');
+        }
+    }
 
     // Schließt den Scanner manuell (Back Button)
     window.closeScanScreen = async function() {
@@ -952,5 +958,174 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         exchangeScreen.classList.add('hidden');
         detailScreen.classList.remove('hidden');
         exchangeSelectedBlocks = []; // Speicher hart leeren
+    };
+
+    // --- Exchange Target & Conflict Logic ---
+
+    // 1. Target Button kicken
+    document.getElementById('btn-exchange-target').addEventListener('click', () => {
+        if (exchangeSelectedBlocks.length === 0) return;
+
+        const db = loadDatabase();
+        const sourceContainer = db.containers[currentDetailIndex];
+
+        // Deep-Copy der ausgewählten Blöcke in den Puffer, damit wir sie gefahrlos temporär umbenennen können
+        tempExchangeBlocks = sourceContainer.blocks
+            .filter(b => exchangeSelectedBlocks.includes(b.id))
+            .map(b => ({ ...b })); 
+
+        scanMode = 'exchange';
+        exchangeScreen.classList.add('hidden');
+        startScannerAction(); // Wirft den Scanner explizit im Exchange-Modus an
+    });
+
+    // 2. Die Auswertung des Scans
+    window.handleExchangeScan = function(decodedText) {
+        const db = loadDatabase();
+        let isBlock = false;
+
+        // Prüfen: Ist das Ziel ein Block?
+        db.containers.forEach(c => {
+            if (c.blocks && c.blocks.some(b => b.id === decodedText)) isBlock = true;
+        });
+
+        if (isBlock) {
+            alert("Error: Du hast einen Block gescannt. Das Ziel muss ein Container sein.");
+            scanMode = 'default';
+            exchangeScreen.classList.remove('hidden');
+            return;
+        }
+
+        // Prüfen: Ist es ein echter Container?
+        const foundTargetIndex = db.containers.findIndex(c => c.id === decodedText);
+        if (foundTargetIndex === -1) {
+            alert("Error: Ziel-Container nicht gefunden.");
+            scanMode = 'default';
+            exchangeScreen.classList.remove('hidden');
+            return;
+        }
+
+        // Prüfen: Ist es DERSELBE Container?
+        if (foundTargetIndex === currentDetailIndex) {
+            alert("Error: Du kannst Blöcke nicht in ihren eigenen, aktuellen Container umlagern.");
+            scanMode = 'default';
+            exchangeScreen.classList.remove('hidden');
+            return;
+        }
+
+        // Alles gültig! Ziel sichern und auf Namenskonflikte prüfen
+        exchangeTargetContainerIndex = foundTargetIndex;
+        checkExchangeConflicts();
+    };
+
+    // 3. Konflikte aufspüren
+    function checkExchangeConflicts() {
+        const db = loadDatabase();
+        const targetBlocks = db.containers[exchangeTargetContainerIndex].blocks || [];
+
+        // Finde den ersten Block im Puffer, dessen Name im Ziel-Container existiert
+        let conflictBlock = tempExchangeBlocks.find(tempBlock =>
+            targetBlocks.some(tb => tb.name.toLowerCase() === tempBlock.name.toLowerCase())
+        );
+
+        if (conflictBlock) {
+            // Konflikt gefunden -> Popup zeigen
+            document.getElementById('conflict-block-name').textContent = conflictBlock.name;
+            document.getElementById('conflict-new-name').value = '';
+            document.getElementById('conflict-new-name').dataset.blockId = conflictBlock.id;
+            document.getElementById('conflict-popup').classList.remove('hidden');
+        } else {
+            // Keine Konflikte (mehr) -> Review Screen öffnen
+            openReviewExchangeScreen();
+        }
+    }
+
+    // 4. Konflikt abbrechen (Vorgang stirbt)
+    document.getElementById('btn-conflict-cancel').addEventListener('click', () => {
+        document.getElementById('conflict-popup').classList.add('hidden');
+        scanMode = 'default';
+        tempExchangeBlocks = []; // Puffer löschen, Namen werden zurückgesetzt
+        exchangeScreen.classList.remove('hidden'); // Zurück zur Auswahl
+    });
+
+    // 5. Konflikt lösen
+    document.getElementById('btn-conflict-apply').addEventListener('click', () => {
+        const newName = document.getElementById('conflict-new-name').value.trim();
+        const blockId = document.getElementById('conflict-new-name').dataset.blockId;
+
+        if (!newName) {
+            alert("Bitte gib einen Namen ein."); 
+            return;
+        }
+
+        const db = loadDatabase();
+        const targetBlocks = db.containers[exchangeTargetContainerIndex].blocks || [];
+
+        // Doppelte Prüfung: Name darf weder im Ziel existieren, noch bei den anderen zu bewegenden Blöcken
+        const nameInTarget = targetBlocks.some(tb => tb.name.toLowerCase() === newName.toLowerCase());
+        const nameInTemp = tempExchangeBlocks.some(tb => tb.id !== blockId && tb.name.toLowerCase() === newName.toLowerCase());
+
+        if (nameInTarget || nameInTemp) {
+            alert("Dieser Name ist ebenfalls belegt. Bitte wähle einen anderen.");
+            return;
+        }
+
+        // Neuen Namen nur im temporären Puffer speichern
+        const blockToRename = tempExchangeBlocks.find(b => b.id === blockId);
+        if (blockToRename) blockToRename.name = newName;
+
+        document.getElementById('conflict-popup').classList.add('hidden');
+        
+        // Loop: Gibt es noch weitere Konflikte?
+        checkExchangeConflicts(); 
+    });
+
+    // 6. Review Screen rendern
+    function openReviewExchangeScreen() {
+        const db = loadDatabase();
+        const sourceContainer = db.containers[currentDetailIndex];
+        const targetContainer = db.containers[exchangeTargetContainerIndex];
+
+        // FROM Card zeichnen
+        document.getElementById('review-from-container').innerHTML = `
+            <div class="live-card">
+                <div class="card-info">
+                    <div class="card-title">${sourceContainer.name}</div>
+                </div>
+            </div>
+        `;
+
+        // TO Card zeichnen
+        document.getElementById('review-to-container').innerHTML = `
+            <div class="live-card" style="border-color: #0055ff;">
+                <div class="card-info">
+                    <div class="card-title" style="color: #0055ff;">${targetContainer.name}</div>
+                </div>
+            </div>
+        `;
+
+        // WHAT Cards zeichnen (mit potentiell neu vergebenen Namen aus dem Puffer)
+        const whatContainer = document.getElementById('review-what-container');
+        whatContainer.innerHTML = '';
+        tempExchangeBlocks.forEach(block => {
+            whatContainer.innerHTML += `
+                <div class="live-card card-blue" style="margin-bottom: 10px;">
+                    <div class="card-info">
+                        <div class="card-title">${block.name}</div>
+                        <div class="card-detail">Format: ${block.format || '-'}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById('review-exchange-screen').classList.remove('hidden');
+    }
+
+    // 7. Review Abbrechen
+    window.cancelReviewExchange = function() {
+        document.getElementById('review-exchange-screen').classList.add('hidden');
+        scanMode = 'default';
+        tempExchangeBlocks = []; 
+        exchangeScreen.classList.remove('hidden'); // Zurück zur Auswahl
     };
 });
