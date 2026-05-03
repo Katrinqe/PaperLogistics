@@ -267,6 +267,31 @@
                 Fokussiere einen Container- oder Block-QR-Code
             </p>
         </div>
+
+        <!-- === SCREEN 6: EXCHANGE SELECTION === -->
+        <div id="exchange-screen" class="screen hidden">
+            <div class="scan-header">
+                <button class="back-arrow" onclick="closeExchangeScreen()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2>SELECT BLOCKS</h2>
+                <div style="width: 30px;"></div> <!-- Platzhalter für Symmetrie -->
+            </div>
+            
+            <p style="text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 20px;">
+                Wähle die Blöcke aus, die du umlagern möchtest.
+            </p>
+
+            <div id="exchange-block-list" style="flex: 1; overflow-y: auto; padding-bottom: 100px;">
+                <!-- JS generiert hier die anwählbaren Blöcke -->
+            </div>
+            
+            <!-- Schwebende Action Bar unten -->
+            <div class="exchange-bottom-bar">
+                <button class="btn-exchange-back" onclick="closeExchangeScreen()">Back</button>
+                <button id="btn-exchange-target" class="btn-exchange-target disabled" disabled>Target</button>
+            </div>
+        </div>
 <!-- === DELETE CONFIRMATION POPUP === -->
 <!-- === DELETE CONFIRMATION POPUP === -->
         <div id="delete-popup" class="hidden">
