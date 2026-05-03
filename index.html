@@ -356,6 +356,33 @@
                 <button id="btn-confirm-shop" class="btn-create">Confirm</button>
             </div>
         </div>
+        <!-- === SCREEN 9: SHOP DETAIL === -->
+        <div id="shop-detail-screen" class="screen hidden">
+            <div class="detail-header">
+                <button class="back-arrow" onclick="closeShopDetailScreen()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2 id="shop-detail-title">SHOP DETAILS</h2>
+                <div style="width: 30px;"></div>
+            </div>
+
+            <!-- Die Shop Card -->
+            <div id="shop-detail-card-container"></div>
+
+            <!-- Historie -->
+            <div class="history-card">
+                <h3 class="history-title">Shop History</h3>
+                <div class="history-list" id="shop-detail-history-list"></div>
+            </div>
+
+            <!-- Action Bar (2x2 Grid) -->
+            <div class="shop-actions">
+                <button class="action-btn" id="btn-edit-shop" aria-label="Bearbeiten"><i class="fa-solid fa-pen"></i></button>
+                <button class="action-btn" id="btn-sell-shop" aria-label="Verkauf"><i class="fa-solid fa-cart-shopping"></i></button>
+                <button class="action-btn" id="btn-pdf-shop" aria-label="PDF"><i class="fa-solid fa-file-pdf"></i></button>
+                <button class="action-btn btn-danger" id="btn-delete-shop" aria-label="Löschen"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        </div>
         <!-- === CONFLICT POPUP (Umbenennen) === -->
         <div id="conflict-popup" class="popup-overlay hidden">
             <div class="popup-box">
