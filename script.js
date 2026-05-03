@@ -913,7 +913,7 @@ window.closeNewContainerScreen = function() {
         }, 50);
     });
 
-    // --- Universal Delete Engine ---
+   // --- Universal Delete Engine ---
     const deletePopup = document.getElementById('delete-popup');
     let deleteTargetMode = ''; // Kann 'container', 'block' oder 'shop' sein
 
@@ -921,8 +921,82 @@ window.closeNewContainerScreen = function() {
     document.getElementById('btn-delete-container').addEventListener('click', () => {
         const db = loadDatabase();
         const container = db.containers[currentDetailIndex];
-// ... (und so weiter, hier folgt dein neuer, funktionierender Code)
-// --- Scanner Logic (ZXing Engine) ---
+        const titleEl = document.querySelector('#delete-popup .popup-title');
+        
+        if (currentDetailSlideIndex > 0) {
+            deleteTargetMode = 'block';
+            const blockName = container.blocks[currentDetailSlideIndex - 1].name;
+            if (titleEl) titleEl.textContent = `Block "${blockName}" löschen?`;
+        } else {
+            deleteTargetMode = 'container';
+            if (titleEl) titleEl.textContent = `Container "${container.name}" löschen?`;
+        }
+        deletePopup.classList.remove('hidden');
+    });
+
+    // POPUP ÖFFNEN: SHOP
+    document.getElementById('btn-delete-shop').addEventListener('click', () => {
+        deleteTargetMode = 'shop';
+        const db = loadDatabase();
+        const shop = db.shops[currentShopIndex];
+        const titleEl = document.querySelector('#delete-popup .popup-title');
+        
+        if (titleEl) titleEl.textContent = `Shop "${shop.name}" löschen?`;
+        deletePopup.classList.remove('hidden');
+    });
+
+    // LÖSCHEN ABBRECHEN (No)
+    document.getElementById('btn-popup-no').addEventListener('click', () => {
+        deletePopup.classList.add('hidden');
+    });
+
+    // LÖSCHEN BESTÄTIGEN (Yes)
+    document.getElementById('btn-popup-yes').addEventListener('click', () => {
+        const db = loadDatabase();
+        
+        if (deleteTargetMode === 'shop') {
+            // --- SHOP LÖSCHEN ---
+            db.shops.splice(currentShopIndex, 1);
+            saveDatabase(db);
+
+            deletePopup.classList.add('hidden');
+            document.getElementById('shop-detail-screen').classList.add('hidden');
+            listScreen.classList.remove('hidden');
+            renderListScreen(); 
+
+        } else if (deleteTargetMode === 'block') {
+            // --- BLOCK LÖSCHEN ---
+            const container = db.containers[currentDetailIndex];
+            const blockIndex = currentDetailSlideIndex - 1;
+            const blockName = container.blocks[blockIndex].name;
+            
+            container.blocks.splice(blockIndex, 1);
+            
+            const now = new Date();
+            const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            if (!container.history) container.history = [];
+            container.history.push({ icon: 'fa-trash', text: `Block "${blockName}" gelöscht`, time: timeString });
+            
+            db.containers[currentDetailIndex] = container;
+            saveDatabase(db);
+            
+            deletePopup.classList.add('hidden');
+            openDetailScreen(currentDetailIndex, 0); 
+            
+        } else if (deleteTargetMode === 'container') {
+            // --- CONTAINER LÖSCHEN ---
+            db.containers.splice(currentDetailIndex, 1);
+            saveDatabase(db);
+
+            deletePopup.classList.add('hidden');
+            detailScreen.classList.add('hidden');
+            listScreen.classList.remove('hidden');
+            renderListScreen(); 
+        }
+    });
+
+    // --- Scanner Logic (ZXing Engine) ---
     const scanScreen = document.getElementById('scan-screen');
     const codeReader = new ZXing.BrowserMultiFormatReader();
     let isScanning = false;
@@ -933,15 +1007,9 @@ window.closeNewContainerScreen = function() {
     let tempExchangeBlocks = []; 
     let exchangeTargetContainerIndex = -1;
 
-    // Hilfsfunktion: Promise-basierter, kugelsicherer Cleanup
-    // ... (stopScanner Funktion unverändert lassen) ...
-
     // Hilfsfunktion: Hardware-Kamera physisch vom Video-Element trennen
     async function stopScanner() {
-        // 1. ZXing Loop stoppen
         codeReader.reset();
-        
-        // 2. Hardware-Kill-Switch für den Video-Stream
         const videoEl = document.getElementById('video-preview');
         if (videoEl && videoEl.srcObject) {
             const stream = videoEl.srcObject;
@@ -951,7 +1019,7 @@ window.closeNewContainerScreen = function() {
         }
     }
 
-// Zentralisierte Scanner-Start-Logik (kann jetzt von überall aufgerufen werden)
+    // Zentralisierte Scanner-Start-Logik (kann jetzt von überall aufgerufen werden)
     async function startScannerAction() {
         if (isScanning) return; // Guard
         isScanning = true;
@@ -992,9 +1060,7 @@ window.closeNewContainerScreen = function() {
             scanScreen.classList.add('hidden');
             homeScreen.classList.remove('hidden');
         }
-    }
-
-    });
+    } // <--- HIER WAR DIE VERLORENE KLAMMER, DIE ALLES ZERSTÖRT HAT
 
     // Normaler Scan vom Home-Screen
     document.getElementById('btn-scan-qr').addEventListener('click', () => {
@@ -1032,7 +1098,7 @@ window.closeNewContainerScreen = function() {
         homeScreen.classList.remove('hidden');
     };
 
-// QR DRUCKEN: Speichert Container- ODER Block-QR-Code
+    // QR DRUCKEN: Speichert Container- ODER Block-QR-Code
     document.getElementById('btn-print-qr').addEventListener('click', () => {
         const db = loadDatabase();
         const container = db.containers[currentDetailIndex];
@@ -1080,7 +1146,7 @@ window.closeNewContainerScreen = function() {
     const btnExchangeTarget = document.getElementById('btn-exchange-target');
     let exchangeSelectedBlocks = []; // Speichert die IDs der ausgewählten Blöcke
 
-// TRANSFER: Öffnet Auswahl (Container) ODER direkt den Scanner (Block)
+    // TRANSFER: Öffnet Auswahl (Container) ODER direkt den Scanner (Block)
     document.getElementById('btn-exchange').addEventListener('click', () => {
         const db = loadDatabase();
         const container = db.containers[currentDetailIndex];
@@ -1286,9 +1352,8 @@ window.closeNewContainerScreen = function() {
         checkExchangeConflicts(); 
     });
 
-    // 6. Review Screen rendern
-// 6. Review Screen rendern (Vollständige ID-Cards + Carousel)
- function openReviewExchangeScreen() {
+    // 6. Review Screen rendern (Vollständige ID-Cards + Carousel)
+    function openReviewExchangeScreen() {
         const db = loadDatabase();
         const sourceContainer = db.containers[currentDetailIndex];
         const targetContainer = db.containers[exchangeTargetContainerIndex];
@@ -1340,7 +1405,7 @@ window.closeNewContainerScreen = function() {
         }
     }
 
-// Hilfsfunktion: Baut die EXAKTE 1:1 HTML-Struktur der Original-Live-Card inkl. Aggregation
+    // Hilfsfunktion: Baut die EXAKTE 1:1 HTML-Struktur der Original-Live-Card inkl. Aggregation
     function createFullCardHTML(item, colorClass, qrIdSuffix) {
         // Aggregations-Logik direkt integriert (liest Container und dessen Blöcke aus)
         function getCardAggregated(key) {
@@ -1375,9 +1440,7 @@ window.closeNewContainerScreen = function() {
         `;
     }
 
-
-
-// Hilfsfunktion: Nutzt exakt dieselben QR-Settings wie der Rest der App
+    // Hilfsfunktion: Nutzt exakt dieselben QR-Settings wie der Rest der App
     function renderReviewQRCode(dataString, elementId, isBlock) {
         const el = document.getElementById(elementId);
         if (!el) return;
@@ -1399,6 +1462,7 @@ window.closeNewContainerScreen = function() {
         tempExchangeBlocks = []; 
         exchangeScreen.classList.remove('hidden'); // Zurück zur Auswahl
     };
+
     // 8. Transfer bestätigen & ausführen
     document.getElementById('btn-confirm-exchange').addEventListener('click', () => {
         const db = loadDatabase();
@@ -1408,15 +1472,13 @@ window.closeNewContainerScreen = function() {
         if (!sourceContainer || !targetContainer) return;
 
         // 1. Blöcke aus der Quelle entfernen
-        // (Wir behalten nur die Blöcke, deren IDs NICHT im Auswahl-Array stehen)
         sourceContainer.blocks = sourceContainer.blocks.filter(b => !exchangeSelectedBlocks.includes(b.id));
 
         // 2. Blöcke ins Ziel einfügen
-        // (Wir nutzen tempExchangeBlocks, da hier bereits alle Namenskonflikte gelöst wurden!)
         if (!targetContainer.blocks) targetContainer.blocks = [];
         targetContainer.blocks.push(...tempExchangeBlocks);
 
-       // 3. Audit-Trail (Historie) für Container UND Blöcke schreiben
+        // 3. Audit-Trail (Historie) für Container UND Blöcke schreiben
         const now = new Date();
         const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         
@@ -1441,9 +1503,7 @@ window.closeNewContainerScreen = function() {
 
         // WICHTIG: Historie für JEDEN EINZELNEN Block schreiben
         tempExchangeBlocks.forEach(block => {
-            // Wenn der Block noch eine "leere Akte" hatte, speichern wir das Erstellungsdatum nachträglich hart ab
             if (!block.history) {
-                // Wir nutzen die alte formatDisplayDate Logik für das Fallback-Datum
                 let fallbackDate = block.date || sourceContainer.date || timeString;
                 if (fallbackDate && fallbackDate.includes('-')) {
                     const parts = fallbackDate.split('-');
@@ -1456,7 +1516,6 @@ window.closeNewContainerScreen = function() {
                 }];
             }
             
-            // Jetzt den neuen Transfer-Eintrag anhängen
             block.history.push({
                 icon: 'fa-right-left',
                 text: `Umgelagert aus ${sourceContainer.name}`,
@@ -1469,7 +1528,7 @@ window.closeNewContainerScreen = function() {
         db.containers[exchangeTargetContainerIndex] = targetContainer;
         saveDatabase(db);
 
-        // 5. Erfolgs-Feedback (App-Feeling: kurz-lang-kurz Vibration)
+        // 5. Erfolgs-Feedback
         if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
 
         // 6. Aufräumen der Puffer
@@ -1479,14 +1538,10 @@ window.closeNewContainerScreen = function() {
 
         // 7. Screens wechseln und UI aktualisieren
         document.getElementById('review-exchange-screen').classList.add('hidden');
-        
-        // Lädt die Detail-Ansicht des Quell-Containers hart neu. 
-        // -> Die Live-Card aggregiert sich neu, die Blöcke sind weg, die Historie zeigt den neuen Eintrag.
         openDetailScreen(currentDetailIndex); 
     });
-    // --- PDF Export Logic ---
 
-    // Helfer: Datum formatieren
+    // --- PDF Export Logic ---
     function formatPdfDate(dateStr) {
         let displayDate = dateStr || '-';
         if (displayDate && displayDate.includes('-')) {
@@ -1496,7 +1551,6 @@ window.closeNewContainerScreen = function() {
         return displayDate;
     }
 
-    // Helfer: Aggregation für die PDF-Card
     function getPdfAggregated(item, key, isContainer) {
         let values = new Set();
         if (item[key]) values.add(item[key]);
@@ -1508,7 +1562,6 @@ window.closeNewContainerScreen = function() {
         return Array.from(values).join(' / ') || '-';
     }
 
-    // Helfer: HTML für die Print-Card bauen
     function buildPdfCardHtml(item, isContainer, qrIdSuffix) {
         return `
             <div class="pdf-card">
@@ -1525,12 +1578,10 @@ window.closeNewContainerScreen = function() {
         `;
     }
 
-    // Helfer: HTML für die Print-Historie bauen
     function buildPdfHistoryHtml(historyArray) {
         if (!historyArray || historyArray.length === 0) return '<p style="color:#888;">Keine Historie vorhanden.</p>';
         
         let html = `<div class="pdf-history-list">`;
-        // Wir iterieren umgedreht, neueste Aktion oben
         historyArray.slice().reverse().forEach(entry => {
             html += `
                 <div class="pdf-history-item">
@@ -1542,22 +1593,21 @@ window.closeNewContainerScreen = function() {
         html += `</div>`;
         return html;
     }
+
     document.getElementById('btn-export-pdf').addEventListener('click', async () => {
         const db = loadDatabase();
         const container = db.containers[currentDetailIndex];
         if (!container) return;
 
-        // Eindeutige Document-ID und Zeitstempel generieren
         const randomHex = Math.floor(Math.random() * 16777215).toString(16).toUpperCase().padStart(6, '0');
         const docId = `DOC-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${randomHex}`;
         
         const now = new Date();
         const printTime = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    let pdfHtml = '';
+        let pdfHtml = '';
 
         if (currentDetailSlideIndex > 0) {
-            // BLOCK MODUS (Nur eine Seite für genau diesen Block)
             const block = container.blocks[currentDetailSlideIndex - 1];
             pdfHtml += `
                 <div class="pdf-page">
@@ -1574,7 +1624,6 @@ window.closeNewContainerScreen = function() {
                 </div>
             `;
         } else {
-            // CONTAINER MODUS (Alles wie gehabt)
             pdfHtml += `
                 <div class="pdf-page">
                     <div class="pdf-header">
@@ -1607,16 +1656,13 @@ window.closeNewContainerScreen = function() {
         const stagingArea = document.getElementById('pdf-export-container');
         stagingArea.innerHTML = pdfHtml;
 
-        // QR Codes bedingt rendern
         const qrConfig = getQRConfig(false); 
         qrConfig.width = 90; qrConfig.height = 90; qrConfig.margin = 0; qrConfig.backgroundOptions = { color: "#ffffff" };
 
         if (currentDetailSlideIndex > 0) {
-            // Nur den einen blauen Block-QR zeichnen
             const blockQrConfig = { ...qrConfig, data: container.blocks[currentDetailSlideIndex - 1].id, dotsOptions: { color: "#0055ff", type: "square" }, cornersSquareOptions: { color: "#0055ff", type: "square" }, cornersDotOptions: { color: "#0055ff", type: "square" } };
             new QRCodeStyling(blockQrConfig).append(document.getElementById('pdf-qr-b0'));
         } else {
-            // Alle QRs zeichnen (Container)
             qrConfig.data = container.id;
             new QRCodeStyling(qrConfig).append(document.getElementById('pdf-qr-c'));
             if (container.blocks) {
@@ -1627,42 +1673,35 @@ window.closeNewContainerScreen = function() {
             }
         }
 
-  // --- PDF ENGINE STARTEN ---
-        // Kurzes visuelles Feedback für dich, dass der Prozess läuft
         const originalBtnColor = document.getElementById('btn-export-pdf').style.backgroundColor;
         document.getElementById('btn-export-pdf').style.backgroundColor = '#00C851';
 
-        // WICHTIG: Wir zwingen die Engine 500ms zu warten, damit die QR-Codes fertig gerendert sind
         setTimeout(() => {
-const opt = {
+            const opt = {
                 margin:       0, 
                 filename:     `${container.name}_Dossier_${docId}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true }, 
                 jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
-                // Zwingt die Engine, die Blöcke als unteilbare Elemente zu behandeln
                 pagebreak:    { mode: ['css', 'legacy'], avoid: '.pdf-block-wrapper' } 
             };
 
-            // Konvertierung ausführen und Herunterladen
             html2pdf().set(opt).from(stagingArea).save().then(() => {
-                // Aufräumen und Button zurücksetzen
                 stagingArea.innerHTML = '';
                 document.getElementById('btn-export-pdf').style.backgroundColor = originalBtnColor;
             });
         }, 500);
     });
-// --- New & Edit Shop Engine ---
+
+    // --- New & Edit Shop Engine ---
     const newShopScreen = document.getElementById('new-shop-screen');
     const shopAvatarInput = document.getElementById('shop-avatar-input');
     const shopAvatarPreview = document.getElementById('shop-avatar-preview');
     let tempShopImageBase64 = null;
     
-    // STATE TRACKER FÜR SHOPS
     let isShopEditMode = false;
     let editingShopIndex = -1;
 
-    // CREATE MODUS: Öffnet den Screen vom Home-Dashboard
     document.getElementById('btn-add-shop').addEventListener('click', () => {
         isShopEditMode = false;
         editingShopIndex = -1;
@@ -1672,7 +1711,6 @@ const opt = {
         
         document.querySelector('#new-shop-screen h2').textContent = 'NEW SHOP';
         
-        // Formular hart resetten
         document.getElementById('shop-name-input').value = '';
         shopAvatarPreview.src = '';
         shopAvatarPreview.classList.add('hidden');
@@ -1681,7 +1719,6 @@ const opt = {
 
     window.closeNewShopScreen = function() {
         newShopScreen.classList.add('hidden');
-        // Smartes Routing beim Abbrechen
         if (isShopEditMode) {
             document.getElementById('shop-detail-screen').classList.remove('hidden');
         } else {
@@ -1689,12 +1726,10 @@ const opt = {
         }
     };
 
-    // Klick auf das Profilbild öffnet den Datei-Dialog
     document.getElementById('btn-shop-avatar').addEventListener('click', () => {
         shopAvatarInput.click();
     });
 
-    // Bild wird ausgewählt, komprimiert und als Base64 gespeichert
     shopAvatarInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -1703,24 +1738,21 @@ const opt = {
         reader.onload = function(e) {
             const img = new Image();
             img.onload = function() {
-                // Komprimierung über Canvas (Schützt die Datenbank vor Abstürzen)
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-                const size = 300; // Profilbilder brauchen nicht mehr als 300x300 Pixel
+                const size = 300; 
                 
                 canvas.width = size;
                 canvas.height = size;
                 
-                // Zentrierter Crop (Quadratischer Ausschnitt)
                 const minSide = Math.min(img.width, img.height);
                 const startX = (img.width - minSide) / 2;
                 const startY = (img.height - minSide) / 2;
                 
                 ctx.drawImage(img, startX, startY, minSide, minSide, 0, 0, size, size);
                 
-                tempShopImageBase64 = canvas.toDataURL('image/jpeg', 0.7); // 70% Qualität reicht völlig
+                tempShopImageBase64 = canvas.toDataURL('image/jpeg', 0.7); 
                 
-                // Vorschau anzeigen
                 shopAvatarPreview.src = tempShopImageBase64;
                 shopAvatarPreview.classList.remove('hidden');
             };
@@ -1729,7 +1761,6 @@ const opt = {
         reader.readAsDataURL(file);
     });
 
-// EDIT MODUS: Öffnet den Screen aus den Shop-Details
     document.getElementById('btn-edit-shop').addEventListener('click', () => {
         const db = loadDatabase();
         const shop = db.shops[currentShopIndex];
@@ -1743,7 +1774,6 @@ const opt = {
         
         document.querySelector('#new-shop-screen h2').textContent = 'EDIT SHOP';
 
-        // Formular mit bestehenden Daten füllen
         document.getElementById('shop-name-input').value = shop.name;
         if (shop.image) {
             tempShopImageBase64 = shop.image;
@@ -1756,7 +1786,6 @@ const opt = {
         }
     });
     
-// Shop Speichern (Weiche für Create & Edit)
     document.getElementById('btn-confirm-shop').addEventListener('click', () => {
         const shopName = document.getElementById('shop-name-input').value.trim();
         
@@ -1767,7 +1796,6 @@ const opt = {
 
         const db = loadDatabase();
         
-        // Gatekeeper: Check auf Duplikate (Ignoriert den eigenen Namen im Edit-Modus)
         const nameExists = db.shops.some((s, index) => {
             if (isShopEditMode && index === editingShopIndex) return false;
             return s.name.toLowerCase() === shopName.toLowerCase();
@@ -1782,10 +1810,8 @@ const opt = {
         const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
         if (isShopEditMode) {
-            // --- EDIT MODUS ---
             const shop = db.shops[editingShopIndex];
             
-            // Diff-Check: Hat sich überhaupt was geändert?
             const isChanged = (shop.name !== shopName || shop.image !== tempShopImageBase64);
 
             shop.name = shopName;
@@ -1804,10 +1830,9 @@ const opt = {
             saveDatabase(db);
             
             newShopScreen.classList.add('hidden');
-            openShopDetailScreen(editingShopIndex); // Lädt die Detailansicht hart neu
+            openShopDetailScreen(editingShopIndex); 
 
         } else {
-            // --- CREATE MODUS ---
             const newShop = {
                 id: generateUUID('S'),
                 name: shopName,
@@ -1828,6 +1853,7 @@ const opt = {
             switchListTab('shops');
         }
     });
+
     // --- Shop Detail Screen Logic ---
     let currentShopIndex = -1;
 
@@ -1838,23 +1864,19 @@ const opt = {
         
         if (!shop) return;
 
-        // Screens wechseln
         listScreen.classList.add('hidden');
         document.getElementById('shop-detail-screen').classList.remove('hidden');
 
-        // Datum formatieren
         let displayDate = shop.date || '-';
         if (displayDate && displayDate.includes('-')) {
             const parts = displayDate.split('-');
             displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
         }
 
-        // Avatar auflösen
         const avatarHtml = shop.image 
             ? `<img src="${shop.image}" class="list-avatar">` 
             : `<div class="list-avatar"><i class="fa-solid fa-store" style="color:#666;"></i></div>`;
 
-        // Card rendern (identisch zum Listen-Layout, aber ohne Hover/Klick)
         document.getElementById('shop-detail-card-container').innerHTML = `
             <div class="live-card">
                 <div style="display: flex; align-items: center; width: 100%;">
@@ -1868,7 +1890,6 @@ const opt = {
             </div>
         `;
 
-        // Historie rendern
         const historyList = document.getElementById('shop-detail-history-list');
         historyList.innerHTML = '';
         
@@ -1877,7 +1898,6 @@ const opt = {
         if (historyData.length === 0) {
             historyList.innerHTML = '<p style="color: #666; font-size: 0.9rem;">Keine Historie vorhanden.</p>';
         } else {
-            // Umdrehen, damit das Neueste oben steht
             historyData.slice().reverse().forEach(entry => {
                 historyList.innerHTML += `
                     <div class="history-item">
