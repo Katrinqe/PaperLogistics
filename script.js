@@ -1081,44 +1081,92 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
     });
 
     // 6. Review Screen rendern
+// 6. Review Screen rendern (Vollständige ID-Cards + Carousel)
     function openReviewExchangeScreen() {
         const db = loadDatabase();
         const sourceContainer = db.containers[currentDetailIndex];
         const targetContainer = db.containers[exchangeTargetContainerIndex];
 
-        // FROM Card zeichnen
-        document.getElementById('review-from-container').innerHTML = `
-            <div class="live-card">
-                <div class="card-info">
-                    <div class="card-title">${sourceContainer.name}</div>
-                </div>
-            </div>
-        `;
+        // FROM Card (Rot)
+        document.getElementById('review-from-container').innerHTML = createFullCardHTML(sourceContainer, 'red', 'from');
 
-        // TO Card zeichnen
-        document.getElementById('review-to-container').innerHTML = `
-            <div class="live-card" style="border-color: #0055ff;">
-                <div class="card-info">
-                    <div class="card-title" style="color: #0055ff;">${targetContainer.name}</div>
-                </div>
-            </div>
-        `;
+        // TO Card (Grün)
+        document.getElementById('review-to-container').innerHTML = createFullCardHTML(targetContainer, 'green', 'to');
 
-        // WHAT Cards zeichnen (mit potentiell neu vergebenen Namen aus dem Puffer)
+        // WHAT Cards (Blaues Swipe-Carousel)
         const whatContainer = document.getElementById('review-what-container');
-        whatContainer.innerHTML = '';
-        tempExchangeBlocks.forEach(block => {
-            whatContainer.innerHTML += `
-                <div class="live-card card-blue" style="margin-bottom: 10px;">
-                    <div class="card-info">
-                        <div class="card-title">${block.name}</div>
-                        <div class="card-detail">Format: ${block.format || '-'}</div>
-                    </div>
+        let carouselHTML = `<div class="block-carousel" id="review-block-carousel">`;
+        let dotsHTML = `<div class="carousel-dots" id="review-carousel-dots">`;
+
+        tempExchangeBlocks.forEach((block, index) => {
+            carouselHTML += `
+                <div class="carousel-slide">
+                    ${createFullCardHTML(block, 'blue', `what-${index}`)}
                 </div>
             `;
+            // Für jeden Block einen Dot generieren (der erste ist aktiv)
+            dotsHTML += `<div class="carousel-dot ${index === 0 ? 'active' : ''}"></div>`;
         });
 
+        carouselHTML += `</div>`;
+        dotsHTML += `</div>`;
+        
+        // Wenn es nur ein Block ist, blenden wir die Dots aus, da man nicht wischen muss
+        whatContainer.innerHTML = carouselHTML + (tempExchangeBlocks.length > 1 ? dotsHTML : '');
+
         document.getElementById('review-exchange-screen').classList.remove('hidden');
+
+        // QR-Codes physisch in die Platzhalter rendern
+        renderReviewQRCode(sourceContainer.id, 'qr-from');
+        renderReviewQRCode(targetContainer.id, 'qr-to');
+        tempExchangeBlocks.forEach((block, index) => {
+            renderReviewQRCode(block.id, `qr-what-${index}`);
+        });
+
+        // Swipe-Logik für die Dots aktivieren
+        if (tempExchangeBlocks.length > 1) {
+            const carousel = document.getElementById('review-block-carousel');
+            const dots = document.querySelectorAll('#review-carousel-dots .carousel-dot');
+            
+            carousel.addEventListener('scroll', () => {
+                // Berechnet anhand der Scroll-Position, welche Karte gerade in der Mitte ist
+                const activeIndex = Math.round(carousel.scrollLeft / carousel.offsetWidth);
+                dots.forEach(d => d.classList.remove('active'));
+                if(dots[activeIndex]) dots[activeIndex].classList.add('active');
+            });
+        }
+    }
+
+    // Hilfsfunktion: Baut die vollständige HTML-Struktur des "Personalausweises"
+    function createFullCardHTML(item, colorClass, qrIdSuffix) {
+        return `
+            <div class="live-card card-${colorClass}">
+                <div class="card-qr" id="qr-${qrIdSuffix}"></div>
+                <div class="card-info">
+                    <div class="card-title">${item.name}</div>
+                    <div class="card-detail">ID: ${item.id.substring(0, 8)}...</div>
+                    <div class="card-detail">Format: ${item.format || '-'}</div>
+                    <div class="card-detail">Quality: ${item.quality || '-'}</div>
+                    <div class="card-detail">Price: ${item.price ? item.price + ' €' : '-'}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Hilfsfunktion: Generiert den QR-Code in das leere div der Karte
+    function renderReviewQRCode(dataString, elementId) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        el.innerHTML = ''; 
+        
+        const config = getQRConfig(false);
+        config.data = dataString;
+        config.width = 80; 
+        config.height = 80;
+        config.margin = 0; // Kein Rand, damit er perfekt in die Karte passt
+        
+        const qrCode = new QRCodeStyling(config);
+        qrCode.append(el);
     }
 
     // 7. Review Abbrechen
