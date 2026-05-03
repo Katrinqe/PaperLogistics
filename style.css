@@ -683,21 +683,25 @@ header {
     margin-bottom: 25px;
 }
 
-/* History Section */
-.history-section {
-    flex-grow: 1;
+/* --- History Card --- */
+.history-card {
+    background-color: #1a1a1a;
+    border-radius: 16px;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border: 1px solid #333;
+    /* Verhindert, dass die Card bei langer Historie den ganzen Screen sprengt */
+    max-height: 250px; 
     overflow-y: auto;
-    padding-right: 5px;
-    margin-bottom: 15px;
 }
 
 .history-title {
     font-size: 0.8rem;
-    color: #666;
+    color: #888;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     margin-bottom: 15px;
-    padding-bottom: 8px;
+    padding-bottom: 10px;
     border-bottom: 1px solid #333;
 }
 
@@ -706,6 +710,10 @@ header {
     gap: 15px;
     margin-bottom: 15px;
     align-items: flex-start;
+}
+
+.history-item:last-child {
+    margin-bottom: 0;
 }
 
 .history-icon {
@@ -719,6 +727,7 @@ header {
     color: #fff;
     font-size: 0.85rem;
     flex-shrink: 0;
+    border: 1px solid #333;
 }
 
 .history-info {
@@ -739,13 +748,13 @@ header {
     font-size: 0.8rem;
 }
 
-/* Action Bar Bottom */
+/* --- Action Bar (3x2 Grid) --- */
 .detail-actions {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 Spalten mit exakt gleicher Breite */
     gap: 12px;
     margin-top: auto;
-    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 .action-btn {
@@ -754,22 +763,22 @@ header {
     border: none;
     border-radius: 12px;
     height: 60px;
-    flex: 1;
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
+    border: 1px solid #222;
 }
 
 .action-btn:active {
     background-color: #333;
+    transform: scale(0.94); /* Leichtes physisches Feedback beim Tippen */
 }
 
 .action-btn.btn-danger {
-    color: #ff4444; /* Rot für Löschen, um Fehler zu vermeiden */
+    color: #ff4444;
 }
-
 /* --- Delete Popup --- */
 #delete-popup {
     position: fixed;
