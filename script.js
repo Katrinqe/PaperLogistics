@@ -654,66 +654,113 @@ window.closeNewContainerScreen = function() {
             if (db.shops.length === 0) qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Shops created yet.</p>';
         }
     };
-// --- List Rendering & QR Generation ---
-    function renderListScreen() {
-        qrListContent.innerHTML = ''; 
+// --- List Screen Tab Logic ---
+    let currentListTab = 'qrcodes'; // Standardmäßig startet die Liste bei den QR Codes
+
+    window.switchListTab = function(tabName) {
+        currentListTab = tabName;
+        
+        // Buttons oben in der Leiste optisch umschalten
+        document.getElementById('tab-qrcodes').classList.remove('active');
+        document.getElementById('tab-shops').classList.remove('active');
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        
+        // Liste sofort neu zeichnen
+        renderListScreen();
+    };
+
+    // Die einzige, echte Render-Funktion für die Liste
+    window.renderListScreen = function() {
+        const qrListContent = document.getElementById('qr-list-content');
+        qrListContent.innerHTML = ''; // Zerstört den alten Inhalt komplett, bevor neu gezeichnet wird
+        
         const db = loadDatabase();
 
-        db.containers.forEach((container, index) => {
-            // Wir bauen die Aggregations-Logik (z.B. "High / Low") für die Liste nach
-            function getListAggregated(key) {
-                let values = new Set();
-                if (container[key]) values.add(container[key]);
-                if (container.blocks) {
-                    container.blocks.forEach(block => {
-                        if (block[key]) values.add(block[key]);
-                    });
+        if (currentListTab === 'qrcodes') {
+            // ==========================================
+            // TAB 1: NUR QR CODES (CONTAINER) RENDERN
+            // ==========================================
+            if (!db.containers || db.containers.length === 0) {
+                qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Containers created yet.</p>';
+                return;
+            }
+
+            db.containers.forEach((container, index) => {
+                function getListAggregated(key) {
+                    let values = new Set();
+                    if (container[key]) values.add(container[key]);
+                    if (container.blocks) container.blocks.forEach(block => { if (block[key]) values.add(block[key]); });
+                    return Array.from(values).join(' / ') || '-';
                 }
-                return Array.from(values).join(' / ') || '-';
-            }
 
-            // Datum formatieren
-            let displayDate = container.date;
-            if (displayDate && displayDate.includes('-')) {
-                const parts = displayDate.split('-');
-                displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
-            }
+                let displayDate = container.date || '-';
+                if (displayDate && displayDate.includes('-')) {
+                    const parts = displayDate.split('-');
+                    displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                }
 
-const listItem = document.createElement('div');
-            listItem.className = 'live-card'; 
-            listItem.style.cursor = 'pointer'; // Zeigt an, dass es klickbar ist
-            
-            // Öffnet den Detail-Screen und übergibt den Index
-            listItem.addEventListener('click', () => {
-                openDetailScreen(index);
+                const listItem = document.createElement('div');
+                listItem.className = 'live-card'; 
+                listItem.style.cursor = 'pointer'; 
+                listItem.addEventListener('click', () => openDetailScreen(index));
+                
+                listItem.innerHTML = `
+                    <div class="card-info">
+                        <div class="card-title">${container.name}</div>
+                        <div class="card-detail">Format: ${getListAggregated('format')}</div>
+                        <div class="card-detail">Price: ${getListAggregated('price')}</div>
+                        <div class="card-detail">Quality: ${getListAggregated('quality')}</div>
+                        <div class="card-detail">Date: ${displayDate}</div>
+                    </div>
+                    <div class="card-qr-box" id="qr-code-${index}"></div>
+                `;
+                qrListContent.appendChild(listItem);
+
+                const listQRConfig = getQRConfig(false);
+                listQRConfig.data = container.id; 
+                listQRConfig.width = 85; 
+                listQRConfig.height = 85;
+                new QRCodeStyling(listQRConfig).append(document.getElementById(`qr-code-${index}`));
             });
-            
-            listItem.innerHTML = `
-                <div class="card-info">
-                    <div class="card-title">${container.name}</div>
-                    <div class="card-detail">Format: ${getListAggregated('format')}</div>
-                    <div class="card-detail">Price: ${getListAggregated('price')}</div>
-                    <div class="card-detail">Quality: ${getListAggregated('quality')}</div>
-                    <div class="card-detail">Date: ${displayDate}</div>
-                </div>
-                <div class="card-qr-box" id="qr-code-${index}"></div>
-            `;
-            
-            qrListContent.appendChild(listItem);
 
-            // Generiert den Premium-QR-Code in der exakt gleichen Größe wie im Editor (85x85)
-            const listQRConfig = getQRConfig(false);
-            listQRConfig.data = container.id;
-            listQRConfig.width = 85; 
-            listQRConfig.height = 85;
-            
-            new QRCodeStyling(listQRConfig).append(document.getElementById(`qr-code-${index}`));
-        });
+        } else {
+            // ==========================================
+            // TAB 2: NUR SHOPS RENDERN
+            // ==========================================
+            if (!db.shops || db.shops.length === 0) {
+                qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Shops created yet.</p>';
+                return;
+            }
 
-        if (db.containers.length === 0) {
-            qrListContent.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No Containers created yet.</p>';
+            db.shops.forEach((shop) => {
+                let displayDate = shop.date || '-';
+                if (displayDate && displayDate.includes('-')) {
+                    const parts = displayDate.split('-');
+                    displayDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                }
+
+                const shopItem = document.createElement('div');
+                shopItem.className = 'live-card'; 
+                
+                // Avatar ermitteln (Hochgeladenes Bild oder Standard-Icon)
+                const avatarHtml = shop.image 
+                    ? `<img src="${shop.image}" class="list-avatar">` 
+                    : `<div class="list-avatar"><i class="fa-solid fa-store" style="color:#666;"></i></div>`;
+
+                shopItem.innerHTML = `
+                    <div style="display: flex; align-items: center; width: 100%;">
+                        ${avatarHtml}
+                        <div class="card-info">
+                            <div class="card-title">${shop.name}</div>
+                            <div class="card-detail">Added: ${displayDate}</div>
+                            <div class="card-detail" style="color: #0055ff;">0 Deliveries</div>
+                        </div>
+                    </div>
+                `;
+                qrListContent.appendChild(shopItem);
+            });
         }
-    }
+    };
 // --- Detail Screen & Edit Logic ---
     let currentDetailIndex = -1;
     let currentDetailSlideIndex = 0; // TRACKT DEN AKTUELLEN FOKUS (0 = Container, 1+ = Block)
