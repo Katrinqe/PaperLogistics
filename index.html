@@ -161,10 +161,10 @@
                 <button class="back-arrow" onclick="closeListScreen()">
                     <i class="fa-solid fa-arrow-left"></i>
                 </button>
-                <div class="list-slider">
-                    <button class="active">QR Codes</button>
-                    <button>Shops</button>
-                </div>
+              <div class="list-slider">
+                <button id="tab-qrcodes" class="active" onclick="switchListTab('qrcodes')">QR Codes</button>
+                <button id="tab-shops" onclick="switchListTab('shops')">Shops</button>
+            </div>
                 <!-- Unsichtbarer Platzhalter, damit der Slider perfekt mittig ist (Flexbox-Trick) -->
                 <div style="width: 30px;"></div> 
             </div>
@@ -320,7 +320,42 @@
                 <button id="btn-confirm-exchange" class="btn-exchange-target active">Confirm</button>
             </div>
         </div>
-
+<!-- === SCREEN 8: NEW SHOP === -->
+        <div id="new-shop-screen" class="screen hidden">
+            <div class="scan-header">
+                <button class="back-arrow" onclick="closeNewShopScreen()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2>NEW SHOP</h2>
+                <div style="width: 30px;"></div>
+            </div>
+            
+            <div class="editor-section">
+                <div class="live-card">
+                    <div class="shop-editor-layout">
+                        <!-- Profilbild Bereich -->
+                        <div class="shop-avatar-container" id="btn-shop-avatar">
+                            <i class="fa-solid fa-store default-shop-icon"></i>
+                            <img id="shop-avatar-preview" src="" class="hidden">
+                            <div class="avatar-plus-badge"><i class="fa-solid fa-plus"></i></div>
+                        </div>
+                        
+                        <!-- Versteckter File-Input für die Kamera/Galerie -->
+                        <input type="file" id="shop-avatar-input" accept="image/*" class="hidden">
+                        
+                        <!-- Namens-Eingabe -->
+                        <div class="shop-name-container">
+                            <input type="text" id="shop-name-input" class="v2-input shop-name-input" placeholder="Shop Name">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bottom-actions">
+                <button class="btn-back" onclick="closeNewShopScreen()">Back</button>
+                <button id="btn-confirm-shop" class="btn-create">Confirm</button>
+            </div>
+        </div>
         <!-- === CONFLICT POPUP (Umbenennen) === -->
         <div id="conflict-popup" class="popup-overlay hidden">
             <div class="popup-box">
