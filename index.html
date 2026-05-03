@@ -80,7 +80,7 @@
            <button aria-label="Neues Geschäft" class="icon-btn" id="btn-add-shop">
                 <i class="fa-solid fa-building"></i><span class="badge">+</span>
             </button>
-            <button aria-label="Historie" class="icon-btn">
+           <button aria-label="Historie" class="icon-btn" id="btn-global-history">
                 <i class="fa-solid fa-clock-rotate-left"></i>
             </button>
             <button aria-label="Log Out" class="icon-btn logout">
@@ -370,6 +370,23 @@
                 <button id="btn-confirm-sell" class="btn-exchange-target active">Sell</button>
             </div>
         </div>
+        <!-- === SCREEN 12: GLOBAL HISTORY === -->
+        <div id="global-history-screen" class="screen hidden">
+            <div class="scan-header">
+                <button class="back-arrow" onclick="closeGlobalHistoryScreen()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2>SYSTEM HISTORY</h2>
+                <div style="width: 30px;"></div>
+            </div>
+            
+            <div class="list-content" id="global-history-list" style="padding-top: 20px;">
+                <!-- JS generiert hier die globalen Historien-Einträge -->
+            </div>
+        </div>
+
+        <!-- === SUCCESS TOAST === -->
+        <div id="success-toast" class="toast hidden"></div>
 <!-- === SCREEN 8: NEW SHOP === -->
         <div id="new-shop-screen" class="screen hidden">
             <div class="scan-header">
