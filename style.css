@@ -1285,3 +1285,11 @@ header {
     width: 100%; /* Zwingt die Box wieder auf volle Breite, da inline-block sie sonst schrumpfen würde */
     vertical-align: top;
 }
+
+/* --- Kontext-Sensible Action Bar (Block-Modus) --- */
+.detail-actions.block-mode .action-btn:not(.btn-danger) {
+    color: #0055ff;
+    border-color: rgba(0, 85, 255, 0.4);
+    background-color: rgba(0, 85, 255, 0.05);
+    box-shadow: inset 0 0 10px rgba(0, 85, 255, 0.05);
+}
