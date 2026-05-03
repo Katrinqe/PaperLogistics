@@ -1579,12 +1579,14 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
 
         // WICHTIG: Wir zwingen die Engine 500ms zu warten, damit die QR-Codes fertig gerendert sind
         setTimeout(() => {
-            const opt = {
+const opt = {
                 margin:       0, 
                 filename:     `${container.name}_Dossier_${docId}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true }, 
-                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+                // Zwingt die Engine, die Blöcke als unteilbare Elemente zu behandeln
+                pagebreak:    { mode: ['css', 'legacy'], avoid: '.pdf-block-wrapper' } 
             };
 
             // Konvertierung ausführen und Herunterladen
