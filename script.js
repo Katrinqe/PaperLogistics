@@ -1193,4 +1193,64 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         tempExchangeBlocks = []; 
         exchangeScreen.classList.remove('hidden'); // Zurück zur Auswahl
     };
+    // 8. Transfer bestätigen & ausführen
+    document.getElementById('btn-confirm-exchange').addEventListener('click', () => {
+        const db = loadDatabase();
+        const sourceContainer = db.containers[currentDetailIndex];
+        const targetContainer = db.containers[exchangeTargetContainerIndex];
+
+        if (!sourceContainer || !targetContainer) return;
+
+        // 1. Blöcke aus der Quelle entfernen
+        // (Wir behalten nur die Blöcke, deren IDs NICHT im Auswahl-Array stehen)
+        sourceContainer.blocks = sourceContainer.blocks.filter(b => !exchangeSelectedBlocks.includes(b.id));
+
+        // 2. Blöcke ins Ziel einfügen
+        // (Wir nutzen tempExchangeBlocks, da hier bereits alle Namenskonflikte gelöst wurden!)
+        if (!targetContainer.blocks) targetContainer.blocks = [];
+        targetContainer.blocks.push(...tempExchangeBlocks);
+
+        // 3. Audit-Trail (Historie) für BEIDE Container schreiben
+        const now = new Date();
+        const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        const blockCount = tempExchangeBlocks.length;
+        const blockText = blockCount === 1 ? '1 Block' : `${blockCount} Blöcke`;
+
+        // Historie Quelle (Ausgang)
+        if (!sourceContainer.history) sourceContainer.history = [];
+        sourceContainer.history.push({
+            icon: 'fa-right-left',
+            text: `${blockText} an ${targetContainer.name} übergeben`,
+            time: timeString
+        });
+
+        // Historie Ziel (Eingang)
+        if (!targetContainer.history) targetContainer.history = [];
+        targetContainer.history.push({
+            icon: 'fa-right-left',
+            text: `${blockText} von ${sourceContainer.name} erhalten`,
+            time: timeString
+        });
+
+        // 4. Datenbank speichern
+        db.containers[currentDetailIndex] = sourceContainer;
+        db.containers[exchangeTargetContainerIndex] = targetContainer;
+        saveDatabase(db);
+
+        // 5. Erfolgs-Feedback (App-Feeling: kurz-lang-kurz Vibration)
+        if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+
+        // 6. Aufräumen der Puffer
+        exchangeSelectedBlocks = [];
+        tempExchangeBlocks = [];
+        scanMode = 'default';
+
+        // 7. Screens wechseln und UI aktualisieren
+        document.getElementById('review-exchange-screen').classList.add('hidden');
+        
+        // Lädt die Detail-Ansicht des Quell-Containers hart neu. 
+        // -> Die Live-Card aggregiert sich neu, die Blöcke sind weg, die Historie zeigt den neuen Eintrag.
+        openDetailScreen(currentDetailIndex); 
+    });
 });
