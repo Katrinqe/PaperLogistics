@@ -187,20 +187,24 @@
             <div id="detail-card-container">
             </div>
 
-            <!-- Historie -->
-            <div class="history-section">
+ <!-- Historie als geschlossene Card -->
+            <div class="history-card">
                 <h3 class="history-title">History</h3>
                 <div class="history-list" id="detail-history-list">
                     <!-- JS generiert hier die Historien-Einträge -->
                 </div>
             </div>
 
-            <!-- Action Bar (Platzhalter-Funktionen) -->
-           <!-- Action Bar -->
+            <!-- Action Bar (3x2 Grid) -->
             <div class="detail-actions">
+                <!-- Obere Reihe: Standard-Aktionen -->
                 <button class="action-btn" id="btn-edit-container" aria-label="Bearbeiten"><i class="fa-solid fa-pen"></i></button>
-                <button class="action-btn" aria-label="Umlagern"><i class="fa-solid fa-right-left"></i></button>
-                <button class="action-btn" aria-label="Verkaufen"><i class="fa-solid fa-cart-shopping"></i></button>
+                <button class="action-btn" id="btn-exchange" aria-label="Umlagern"><i class="fa-solid fa-right-left"></i></button>
+                <button class="action-btn" id="btn-sell" aria-label="Verkaufen"><i class="fa-solid fa-cart-shopping"></i></button>
+                
+                <!-- Untere Reihe: Export & Destruktiv -->
+                <button class="action-btn" id="btn-print-qr" aria-label="Drucken"><i class="fa-solid fa-print"></i></button>
+                <button class="action-btn" id="btn-export-pdf" aria-label="PDF"><i class="fa-solid fa-file-pdf"></i></button>
                 <button class="action-btn btn-danger" id="btn-delete-container" aria-label="Löschen"><i class="fa-solid fa-trash"></i></button>
             </div>
         </div>
