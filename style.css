@@ -969,18 +969,32 @@ header {
 }
 
 /* --- Review Exchange Screen --- */
+.review-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly; /* Verteilt die 3 Bereiche perfekt auf die verfügbare Höhe */
+    padding-bottom: 85px; /* Platz für die Action Bar unten */
+    overflow: hidden; /* Scrollen hart verbieten */
+}
+
 .section-label {
     color: #888;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     letter-spacing: 2px;
-    margin: 20px 0 10px 0;
+    margin: 0 0 4px 0; /* Drastisch reduziert */
     text-transform: uppercase;
 }
 
 #review-from-container, #review-to-container, #review-what-container {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0; /* Kein extra Abstand */
+}
+
+/* Verhindert, dass das Carousel zusätzlichen Platz nach unten blockiert */
+.block-carousel {
+    padding-bottom: 0;
 }
 
 /* --- Popups (Conflict & Delete) --- */
