@@ -1535,7 +1535,7 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
                     <div class="pdf-section-title">BLOCK DOSSIERS</div>
             `;
 
-    container.blocks.forEach((block, index) => {
+container.blocks.forEach((block, index) => {
                 pdfHtml += `
                     <!-- Der neue Wrapper, der das Zerschneiden durch die PDF-Engine blockiert -->
                     <div class="pdf-block-wrapper">
