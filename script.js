@@ -1524,24 +1524,27 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
             });
         }
 
-        // --- PDF ENGINE STARTEN ---
+  // --- PDF ENGINE STARTEN ---
         // Kurzes visuelles Feedback für dich, dass der Prozess läuft
         const originalBtnColor = document.getElementById('btn-export-pdf').style.backgroundColor;
         document.getElementById('btn-export-pdf').style.backgroundColor = '#00C851';
 
-        const opt = {
-            margin:       0, // Margins regeln wir über das CSS-Padding der .pdf-page
-            filename:     `${container.name}_Dossier_${docId}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true }, // Scale 2 macht den Text gestochen scharf
-            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-        };
+        // WICHTIG: Wir zwingen die Engine 500ms zu warten, damit die QR-Codes fertig gerendert sind
+        setTimeout(() => {
+            const opt = {
+                margin:       0, 
+                filename:     `${container.name}_Dossier_${docId}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true }, 
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
 
-        // Konvertierung ausführen und Herunterladen
-        html2pdf().set(opt).from(stagingArea).save().then(() => {
-            // Aufräumen und Button zurücksetzen
-            stagingArea.innerHTML = '';
-            document.getElementById('btn-export-pdf').style.backgroundColor = originalBtnColor;
-        });
+            // Konvertierung ausführen und Herunterladen
+            html2pdf().set(opt).from(stagingArea).save().then(() => {
+                // Aufräumen und Button zurücksetzen
+                stagingArea.innerHTML = '';
+                document.getElementById('btn-export-pdf').style.backgroundColor = originalBtnColor;
+            });
+        }, 500);
     });
 });
