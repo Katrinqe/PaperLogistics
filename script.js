@@ -623,9 +623,10 @@ const listItem = document.createElement('div');
     }
 // --- Detail Screen & Edit Logic ---
     let currentDetailIndex = -1;
+    let currentDetailSlideIndex = 0; // TRACKT DEN AKTUELLEN FOKUS (0 = Container, 1+ = Block)
     let isEditMode = false;
 
-    window.openDetailScreen = function(containerIndex) {
+    window.openDetailScreen = function(containerIndex, startSlide = 0) {
         currentDetailIndex = containerIndex;
         const db = loadDatabase();
         const container = db.containers[containerIndex];
@@ -759,32 +760,50 @@ const listItem = document.createElement('div');
         // Initial History rendern (Startet immer beim Container)
         renderHistory(0);
 
-        // 5. Swipe-Tracker aktivieren (Überwacht den Wisch-Winkel)
+// 5. Swipe-Tracker & Kontext-Engine aktivieren
+        const actionContainer = document.querySelector('.detail-actions');
+        
+        function updateDetailContext(activeIndex) {
+            currentDetailSlideIndex = activeIndex;
+            if (activeIndex > 0) {
+                actionContainer.classList.add('block-mode'); // Färbt die Buttons blau
+            } else {
+                actionContainer.classList.remove('block-mode'); // Standard Weiß/Grau
+            }
+        }
+
+        // Initiale Farbe setzen
+        updateDetailContext(startSlide);
+
         if (blocks.length > 0) {
             const carousel = document.getElementById('detail-block-carousel');
             const dots = document.querySelectorAll('#detail-carousel-dots .carousel-dot');
-            let lastActiveIndex = 0;
+            let lastActiveIndex = startSlide;
+
+            // Wenn wir durch eine Aktion (z.B. QR-Druck) direkt auf einen Block springen
+            if (startSlide > 0) {
+                setTimeout(() => {
+                    carousel.scrollLeft = carousel.clientWidth * startSlide;
+                    renderHistory(startSlide);
+                }, 10);
+            }
 
             carousel.addEventListener('scroll', () => {
                 const activeIndex = Math.round(carousel.scrollLeft / carousel.offsetWidth);
-                
-                // Nur neu rendern, wenn wirklich eine neue Karte in der Mitte ist
                 if (activeIndex !== lastActiveIndex) {
-                    // Update Dots
                     dots.forEach(d => d.classList.remove('active'));
                     if(dots[activeIndex]) dots[activeIndex].classList.add('active');
                     
-                    // Update Historie (Live!)
                     renderHistory(activeIndex);
+                    updateDetailContext(activeIndex); // Wechselt die Farben der Action-Bar live
                     
-                    // Haptisches Feedback beim Einrasten (falls vom Browser/OS erlaubt)
                     if (navigator.vibrate) navigator.vibrate(10);
-                    
                     lastActiveIndex = activeIndex;
                 }
             });
         }
     };
+  
 
     window.closeDetailScreen = function() {
         detailScreen.classList.add('hidden');
@@ -793,7 +812,7 @@ const listItem = document.createElement('div');
     // --- Edit & Delete Actions ---
     const deletePopup = document.getElementById('delete-popup');
 
-    // BEARBEITEN: Läd die Daten in den Editor
+// BEARBEITEN: Lädt die Daten und springt zum richtigen Element
     document.getElementById('btn-edit-container').addEventListener('click', () => {
         const db = loadDatabase();
         const container = db.containers[currentDetailIndex];
@@ -801,58 +820,46 @@ const listItem = document.createElement('div');
 
         isEditMode = true;
 
-        // MasterState mit den existierenden Daten füllen
         masterState = {
-            id: container.id,
-            name: container.name,
-            format: container.format || '',
-            blocks: container.blocks ? container.blocks.length : 0,
-            price: container.price || '',
-            quality: container.quality || '',
-            date: container.date || ''
+            id: container.id, name: container.name, format: container.format || '',
+            blocks: container.blocks ? container.blocks.length : 0, price: container.price || '',
+            quality: container.quality || '', date: container.date || ''
         };
 
-   // ChildStates mit den existierenden Blöcken füllen
         childStates = [];
         if (container.blocks) {
             container.blocks.forEach(b => {
                 childStates.push({
-                    id: b.id,
-                    name: b.name,
-                    format: b.format,
-                    price: b.price,
-                    quality: b.quality,
-                    date: b.date,
-                    status: b.status || 'available',
-                    history: b.history // <--- GANZ WICHTIG: Die Akte des Blocks wird mit in den Editor genommen!
+                    id: b.id, name: b.name, format: b.format, price: b.price,
+                    quality: b.quality, date: b.date, status: b.status || 'available', history: b.history
                 });
             });
         }
 
-currentActiveIndex = -1; // Startet wieder auf der Master-Card
+        currentActiveIndex = -1;
         document.getElementById('v2-name').value = masterState.name;
         document.getElementById('v2-date').value = masterState.date;
         
         resetToggles();
-        
-        // Block-Anzahl visuell wiederherstellen
         document.querySelectorAll('#v2-blocks button').forEach(b => {
-            if (parseInt(b.getAttribute('data-val')) <= masterState.blocks) {
-                b.classList.add('active');
-            }
+            if (parseInt(b.getAttribute('data-val')) <= masterState.blocks) b.classList.add('active');
         });
 
         renderCards();
         
-        // Zwingt die UI dazu, alle gespeicherten Toggles (Format, Price, Quality) farblich zu markieren
-        updateUIFromScroll(-1);
-        
-        // Setzt den physischen Wisch-Slider wieder ganz nach links auf Anfang
-        document.getElementById('card-slider').scrollLeft = 0;
-
-        // Screen Wechsel
         detailScreen.classList.add('hidden');
         newContainerScreen.classList.remove('hidden');
+
+        // MAGIE: Wenn wir auf einem Block waren, scrollt der Editor automatisch exakt zu diesem Block
+        setTimeout(() => {
+            const slider = document.getElementById('card-slider');
+            if (currentDetailSlideIndex > 0) {
+                slider.scrollLeft = slider.clientWidth * currentDetailSlideIndex;
+            } else {
+                updateUIFromScroll(-1);
+                slider.scrollLeft = 0;
+            }
+        }, 50);
     });
 
     // LÖSCHEN POPUP ÖFFNEN
@@ -987,48 +994,46 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         homeScreen.classList.remove('hidden');
     };
 
-    // --- Export & Print Actions ---
+// QR DRUCKEN: Speichert Container- ODER Block-QR-Code
     document.getElementById('btn-print-qr').addEventListener('click', () => {
         const db = loadDatabase();
         const container = db.containers[currentDetailIndex];
         if (!container) return;
 
-// 1. Generiere eine hochauflösende, unsichtbare Version des QR-Codes für den perfekten Druck
-        const printConfig = getQRConfig(false);
-        printConfig.data = container.id;
-        printConfig.width = 1024;  // 1024x1024 Pixel für gestochen scharfen Druck
+        let targetItem, isBlock, fileName;
+
+        // Kontext auswerten
+        if (currentDetailSlideIndex > 0) {
+            targetItem = container.blocks[currentDetailSlideIndex - 1];
+            isBlock = true;
+            fileName = `${targetItem.name}_QR`;
+        } else {
+            targetItem = container;
+            isBlock = false;
+            fileName = `${container.name}_QR`;
+        }
+
+        const printConfig = getQRConfig(isBlock);
+        printConfig.data = targetItem.id;
+        printConfig.width = 1024;  
         printConfig.height = 1024;
-        
-        // ÜBERSCHREIBT die Transparenz mit einem harten, weißen Hintergrund für die Galerie
         printConfig.backgroundOptions = { color: "#ffffff" }; 
-        // Fügt einen weißen Schutzrand (Quiet Zone) hinzu, der für das physische Drucken und Scannen extrem wichtig ist
         printConfig.margin = 50; 
         
-        const qrCode = new QRCodeStyling(printConfig);
-        
-        // 2. Löst den nativen Download-Dialog des Betriebssystems aus (speichert als PNG)
-        qrCode.download({
-            name: `${container.name}_QR`,
-            extension: "png"
-        });
+        new QRCodeStyling(printConfig).download({ name: fileName, extension: "png" });
 
-        // 3. Intelligenten Audit-Trail Eintrag hinzufügen
+        // Historie NUR für das exportierte Item schreiben
         const now = new Date();
         const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         
-        // Falls aus irgendeinem Grund noch kein History-Array da ist, sicherheitshalber anlegen
-        if (!container.history) container.history = [];
-        
-        container.history.push({
-            icon: 'fa-print',
-            text: 'QR-Code gespeichert',
-            time: timeString
-        });
+        if (!targetItem.history) targetItem.history = [];
+        targetItem.history.push({ icon: 'fa-print', text: 'QR-Code gespeichert', time: timeString });
 
-        // 4. Datenbank speichern und Ansicht aktualisieren, damit der neue Eintrag sofort sichtbar ist
         db.containers[currentDetailIndex] = container;
         saveDatabase(db);
-        openDetailScreen(currentDetailIndex);
+        
+        // Neu laden und wieder auf den gleichen Block springen
+        openDetailScreen(currentDetailIndex, currentDetailSlideIndex);
     });
 
     // --- Exchange Selection Logic ---
@@ -1037,24 +1042,31 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
     const btnExchangeTarget = document.getElementById('btn-exchange-target');
     let exchangeSelectedBlocks = []; // Speichert die IDs der ausgewählten Blöcke
 
-    // Öffnet den Exchange Screen
+// TRANSFER: Öffnet Auswahl (Container) ODER direkt den Scanner (Block)
     document.getElementById('btn-exchange').addEventListener('click', () => {
         const db = loadDatabase();
         const container = db.containers[currentDetailIndex];
         
-        // Prüfen, ob überhaupt Blöcke drin sind
         if (!container.blocks || container.blocks.length === 0) {
-            alert('Dieser Container ist leer. Es gibt keine Blöcke zum Umlagern.');
-            return;
+            alert('Dieser Container ist leer.'); return;
         }
 
-        // Reset der alten Auswahl
-        exchangeSelectedBlocks = [];
-        
-        detailScreen.classList.add('hidden');
-        exchangeScreen.classList.remove('hidden');
-        
-        renderExchangeList();
+        if (currentDetailSlideIndex > 0) {
+            // BLOCK MODUS (Direktflug zum Scanner)
+            const block = container.blocks[currentDetailSlideIndex - 1];
+            exchangeSelectedBlocks = [block.id];
+            tempExchangeBlocks = [{ ...block }]; // Puffer für Namenskonflikte laden
+            
+            scanMode = 'exchange';
+            detailScreen.classList.add('hidden');
+            startScannerAction(); // Scanner direkt öffnen!
+        } else {
+            // CONTAINER MODUS (Klassische Auswahl)
+            exchangeSelectedBlocks = [];
+            detailScreen.classList.add('hidden');
+            exchangeScreen.classList.remove('hidden');
+            renderExchangeList();
+        }
     });
 
     // Zeichnet die Liste und checkt den Auswahl-Status
@@ -1504,72 +1516,77 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         const now = new Date();
         const printTime = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-        let pdfHtml = '';
+    let pdfHtml = '';
 
-        // --- SEITE 1: CONTAINER ---
-        pdfHtml += `
-            <div class="pdf-page">
-                <div class="pdf-header">
-                    <div>CREATED: ${printTime}</div>
-                    <div>DOC-ID: ${docId}</div>
-                </div>
-                <div class="pdf-section-title">CONTAINER DOSSIER</div>
-                ${buildPdfCardHtml(container, true, 'c')}
-                
-                <div class="pdf-history-title">Container History</div>
-                ${buildPdfHistoryHtml(container.history)}
-            </div>
-        `;
-
-        // --- SEITE 2+: BLÖCKE ---
-        if (container.blocks && container.blocks.length > 0) {
-            // Dies ist die magische Klasse von html2pdf, die einen harten Seitenumbruch erzwingt
-            pdfHtml += `<div class="html2pdf__page-break"></div>`;
-            
+        if (currentDetailSlideIndex > 0) {
+            // BLOCK MODUS (Nur eine Seite für genau diesen Block)
+            const block = container.blocks[currentDetailSlideIndex - 1];
             pdfHtml += `
                 <div class="pdf-page">
                     <div class="pdf-header">
                         <div>CREATED: ${printTime}</div>
                         <div>DOC-ID: ${docId}</div>
                     </div>
-                    <div class="pdf-section-title">BLOCK DOSSIERS</div>
-            `;
-
-container.blocks.forEach((block, index) => {
-                pdfHtml += `
-                    <!-- Der neue Wrapper, der das Zerschneiden durch die PDF-Engine blockiert -->
+                    <div class="pdf-section-title">INDIVIDUAL BLOCK DOSSIER</div>
                     <div class="pdf-block-wrapper">
-                        ${buildPdfCardHtml(block, false, `b${index}`)}
+                        ${buildPdfCardHtml(block, false, 'b0')}
                         <div class="pdf-history-title">Block History</div>
                         ${buildPdfHistoryHtml(block.history)}
-                        <div style="margin-bottom: 50px;"></div>
                     </div>
-                `;
-            });
+                </div>
+            `;
+        } else {
+            // CONTAINER MODUS (Alles wie gehabt)
+            pdfHtml += `
+                <div class="pdf-page">
+                    <div class="pdf-header">
+                        <div>CREATED: ${printTime}</div>
+                        <div>DOC-ID: ${docId}</div>
+                    </div>
+                    <div class="pdf-section-title">CONTAINER DOSSIER</div>
+                    ${buildPdfCardHtml(container, true, 'c')}
+                    <div class="pdf-history-title">Container History</div>
+                    ${buildPdfHistoryHtml(container.history)}
+                </div>
+            `;
 
-            pdfHtml += `</div>`; // Schließt die zweite Seite ab
+            if (container.blocks && container.blocks.length > 0) {
+                pdfHtml += `<div class="html2pdf__page-break"></div><div class="pdf-page"><div class="pdf-header"><div>CREATED: ${printTime}</div><div>DOC-ID: ${docId}</div></div><div class="pdf-section-title">BLOCK DOSSIERS</div>`;
+                container.blocks.forEach((block, index) => {
+                    pdfHtml += `
+                        <div class="pdf-block-wrapper">
+                            ${buildPdfCardHtml(block, false, `b${index}`)}
+                            <div class="pdf-history-title">Block History</div>
+                            ${buildPdfHistoryHtml(block.history)}
+                        </div>
+                        <div style="margin-bottom: 50px;"></div>
+                    `;
+                });
+                pdfHtml += `</div>`;
+            }
         }
 
         const stagingArea = document.getElementById('pdf-export-container');
         stagingArea.innerHTML = pdfHtml;
 
-        // QR-Codes in die Platzhalter des PDFs rendern
-        const qrConfig = getQRConfig(false); // Feste schwarze Konfiguration für sauberen Druck
-        qrConfig.width = 90;
-        qrConfig.height = 90;
-        qrConfig.margin = 0;
-        qrConfig.backgroundOptions = { color: "#ffffff" }; // Zwingend weißer Hintergrund
+        // QR Codes bedingt rendern
+        const qrConfig = getQRConfig(false); 
+        qrConfig.width = 90; qrConfig.height = 90; qrConfig.margin = 0; qrConfig.backgroundOptions = { color: "#ffffff" };
 
-        // Container QR
-        qrConfig.data = container.id;
-        new QRCodeStyling(qrConfig).append(document.getElementById('pdf-qr-c'));
-
-        // Block QRs
-        if (container.blocks) {
-            container.blocks.forEach((block, index) => {
-                const blockQrConfig = { ...qrConfig, data: block.id };
-                new QRCodeStyling(blockQrConfig).append(document.getElementById(`pdf-qr-b${index}`));
-            });
+        if (currentDetailSlideIndex > 0) {
+            // Nur den einen blauen Block-QR zeichnen
+            const blockQrConfig = { ...qrConfig, data: container.blocks[currentDetailSlideIndex - 1].id, dotsOptions: { color: "#0055ff", type: "square" }, cornersSquareOptions: { color: "#0055ff", type: "square" }, cornersDotOptions: { color: "#0055ff", type: "square" } };
+            new QRCodeStyling(blockQrConfig).append(document.getElementById('pdf-qr-b0'));
+        } else {
+            // Alle QRs zeichnen (Container)
+            qrConfig.data = container.id;
+            new QRCodeStyling(qrConfig).append(document.getElementById('pdf-qr-c'));
+            if (container.blocks) {
+                container.blocks.forEach((block, index) => {
+                    const blockQrConfig = { ...qrConfig, data: block.id, dotsOptions: { color: "#0055ff", type: "square" }, cornersSquareOptions: { color: "#0055ff", type: "square" }, cornersDotOptions: { color: "#0055ff", type: "square" } };
+                    new QRCodeStyling(blockQrConfig).append(document.getElementById(`pdf-qr-b${index}`));
+                });
+            }
         }
 
   // --- PDF ENGINE STARTEN ---
