@@ -868,4 +868,89 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         saveDatabase(db);
         openDetailScreen(currentDetailIndex);
     });
+
+    // --- Exchange Selection Logic ---
+    const exchangeScreen = document.getElementById('exchange-screen');
+    const exchangeBlockList = document.getElementById('exchange-block-list');
+    const btnExchangeTarget = document.getElementById('btn-exchange-target');
+    let exchangeSelectedBlocks = []; // Speichert die IDs der ausgewählten Blöcke
+
+    // Öffnet den Exchange Screen
+    document.getElementById('btn-exchange').addEventListener('click', () => {
+        const db = loadDatabase();
+        const container = db.containers[currentDetailIndex];
+        
+        // Prüfen, ob überhaupt Blöcke drin sind
+        if (!container.blocks || container.blocks.length === 0) {
+            alert('Dieser Container ist leer. Es gibt keine Blöcke zum Umlagern.');
+            return;
+        }
+
+        // Reset der alten Auswahl
+        exchangeSelectedBlocks = [];
+        
+        detailScreen.classList.add('hidden');
+        exchangeScreen.classList.remove('hidden');
+        
+        renderExchangeList();
+    });
+
+    // Zeichnet die Liste und checkt den Auswahl-Status
+    function renderExchangeList() {
+        exchangeBlockList.innerHTML = '';
+        const db = loadDatabase();
+        const container = db.containers[currentDetailIndex];
+
+        container.blocks.forEach((block) => {
+            const isSelected = exchangeSelectedBlocks.includes(block.id);
+
+            const card = document.createElement('div');
+            // Nutzt dein live-card Design + die speziellen Selektions-Klassen
+            card.className = `live-card exchange-card ${isSelected ? 'selected card-blue' : 'unselected'}`;
+            card.innerHTML = `
+                <div class="card-info" style="padding-right: 40px;">
+                    <div class="card-title">${block.name}</div>
+                    <div class="card-detail">Format: ${block.format || '-'}</div>
+                    <div class="card-detail">Quality: ${block.quality || '-'}</div>
+                </div>
+                <i class="fa-solid ${isSelected ? 'fa-circle-check' : 'fa-circle'} exchange-check-icon"></i>
+            `;
+
+            // Toggle-Logik beim Tippen auf die Karte
+            card.addEventListener('click', () => {
+                if (isSelected) {
+                    // Entfernen, wenn schon gewählt
+                    exchangeSelectedBlocks = exchangeSelectedBlocks.filter(id => id !== block.id);
+                } else {
+                    // Hinzufügen
+                    exchangeSelectedBlocks.push(block.id);
+                }
+                
+                // Haptisches Feedback für das "Greifen" eines Blocks
+                if (navigator.vibrate) navigator.vibrate(30);
+                
+                renderExchangeList(); // UI direkt updaten
+            });
+
+            exchangeBlockList.appendChild(card);
+        });
+
+        // Target Button evaluieren
+        if (exchangeSelectedBlocks.length > 0) {
+            btnExchangeTarget.classList.remove('disabled');
+            btnExchangeTarget.classList.add('active');
+            btnExchangeTarget.disabled = false;
+        } else {
+            btnExchangeTarget.classList.remove('active');
+            btnExchangeTarget.classList.add('disabled');
+            btnExchangeTarget.disabled = true;
+        }
+    }
+
+    // Schließt den Exchange Screen und verwirft die Auswahl (Keine Speicherung)
+    window.closeExchangeScreen = function() {
+        exchangeScreen.classList.add('hidden');
+        detailScreen.classList.remove('hidden');
+        exchangeSelectedBlocks = []; // Speicher hart leeren
+    };
 });
