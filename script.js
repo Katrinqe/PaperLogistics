@@ -1134,8 +1134,20 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
         }
     }
 
-    // Hilfsfunktion: Baut die EXAKTE 1:1 HTML-Struktur der Original-Live-Card
+// Hilfsfunktion: Baut die EXAKTE 1:1 HTML-Struktur der Original-Live-Card inkl. Aggregation
     function createFullCardHTML(item, colorClass, qrIdSuffix) {
+        // Aggregations-Logik direkt integriert (liest Container und dessen Blöcke aus)
+        function getCardAggregated(key) {
+            let values = new Set();
+            if (item[key]) values.add(item[key]);
+            if (item.blocks && item.blocks.length > 0) {
+                item.blocks.forEach(block => {
+                    if (block[key]) values.add(block[key]);
+                });
+            }
+            return Array.from(values).join(' / ') || '-';
+        }
+
         // Datumsauszug im exakt gleichen Format wie in der Liste
         let displayDate = item.date || '-';
         if (displayDate && displayDate.includes('-')) {
@@ -1147,12 +1159,11 @@ currentActiveIndex = -1; // Startet wieder auf der Master-Card
             <div class="live-card card-${colorClass}">
                 <div class="card-info">
                     <div class="card-title">${item.name}</div>
-                    <div class="card-detail">Format: ${item.format || '-'}</div>
-                    <div class="card-detail">Price: ${item.price || '-'}</div>
-                    <div class="card-detail">Quality: ${item.quality || '-'}</div>
+                    <div class="card-detail">Format: ${getCardAggregated('format')}</div>
+                    <div class="card-detail">Price: ${getCardAggregated('price')}</div>
+                    <div class="card-detail">Quality: ${getCardAggregated('quality')}</div>
                     <div class="card-detail">Date: ${displayDate}</div>
                 </div>
-                <!-- Exakt dieselbe weiße Box wie in list-item und editor -->
                 <div class="card-qr-box" id="qr-${qrIdSuffix}"></div>
             </div>
         `;
