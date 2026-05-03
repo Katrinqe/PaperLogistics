@@ -401,18 +401,43 @@ window.closeNewContainerScreen = function() {
     document.getElementById('btn-confirm-v2').addEventListener('click', () => {
         const db = loadDatabase();
 
-        // Namens-Check: Ignoriert beim Editieren den Namen des aktuellen Containers
-        const nameExists = db.containers.some((c, index) => {
-            if (isEditMode && index === currentDetailIndex) return false; 
-            return c.name.trim().toLowerCase() === masterState.name.trim().toLowerCase();
-        });
-        
-        if (nameExists) {
-            alert(`Der Name "${masterState.name}" wird bereits verwendet. Bitte wähle einen eindeutigen Namen.`);
+        // 1. CONTAINER CHECK: Systemweit eindeutiger Name und nicht leer
+        const containerName = masterState.name.trim();
+        if (!containerName) {
+            alert("Der Container benötigt einen Namen.");
             return;
         }
 
-        // Aktuelles Datum + exakte Uhrzeit für die Historie generieren
+        const containerNameExists = db.containers.some((c, index) => {
+            if (isEditMode && index === currentDetailIndex) return false; 
+            return c.name.trim().toLowerCase() === containerName.toLowerCase();
+        });
+        
+        if (containerNameExists) {
+            alert(`Der Container-Name "${containerName}" existiert bereits im System. Bitte wähle einen anderen.`);
+            return;
+        }
+
+        // 2. BLOCK CHECK: Eindeutige Namen innerhalb dieses Containers und nicht leer
+        if (childStates.length > 0) {
+            // Check auf leere Namen
+            const hasEmptyBlockName = childStates.some(child => !child.name.trim());
+            if (hasEmptyBlockName) {
+                alert("Ein oder mehrere Blöcke haben keinen Namen. Bitte benenne alle Blöcke.");
+                return;
+            }
+
+            // Check auf Duplikate innerhalb des aktuellen Containers
+            const blockNames = childStates.map(child => child.name.trim().toLowerCase());
+            const uniqueBlockNames = new Set(blockNames);
+
+            if (blockNames.length !== uniqueBlockNames.size) {
+                alert("Fehler: Du hast zwei oder mehr Blöcken denselben Namen gegeben. Jeder Block in diesem Container muss einzigartig heißen.");
+                return;
+            }
+        }
+
+        // Wenn alle Checks bestanden sind -> Aktuelles Datum + exakte Uhrzeit für die Historie generieren
         const now = new Date();
         const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
