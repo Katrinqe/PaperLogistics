@@ -412,6 +412,10 @@ window.closeNewContainerScreen = function() {
             return;
         }
 
+        // Aktuelles Datum + exakte Uhrzeit für die Historie generieren
+        const now = new Date();
+        const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
         const containerData = {
             id: masterState.id,
             name: masterState.name,
@@ -419,7 +423,8 @@ window.closeNewContainerScreen = function() {
             format: masterState.format,
             price: masterState.price,
             quality: masterState.quality,
-            blocks: []
+            blocks: [],
+            history: [] // Das neue Array für den Audit-Trail
         };
 
         childStates.forEach(child => {
@@ -435,15 +440,36 @@ window.closeNewContainerScreen = function() {
         });
 
         if (isEditMode) {
-            // Überschreibt den exakten Eintrag an der bekannten Position
+            // Alte Historie übernehmen (oder Fallback erstellen, falls es ein alter Container ist)
+            const oldContainer = db.containers[currentDetailIndex];
+            containerData.history = oldContainer.history || [{
+                icon: 'fa-plus',
+                text: 'Container Created',
+                time: oldContainer.date || timeString
+            }];
+
+            // Neuen "Bearbeitet" Eintrag hinzufügen
+            containerData.history.push({
+                icon: 'fa-pen',
+                text: 'Daten aktualisiert',
+                time: timeString
+            });
+
+            // Überschreiben und speichern
             db.containers[currentDetailIndex] = containerData;
             saveDatabase(db);
             
             newContainerScreen.classList.add('hidden');
             detailScreen.classList.remove('hidden');
-            openDetailScreen(currentDetailIndex); // Lädt die Detail-Ansicht direkt mit den neuen Daten neu
+            openDetailScreen(currentDetailIndex); 
         } else {
-            // Legt einen ganz neuen Container an
+            // Bei Neu-Erstellung den initialen Historien-Eintrag setzen
+            containerData.history.push({
+                icon: 'fa-plus',
+                text: 'Container Created',
+                time: timeString
+            });
+
             db.containers.unshift(containerData); 
             saveDatabase(db);
             
@@ -581,16 +607,28 @@ const listItem = document.createElement('div');
         detailQRConfig.height = 85;
         new QRCodeStyling(detailQRConfig).append(document.getElementById('qr-detail-c'));
 
-        // 3. Historie rendern (Aktuell nur "Created")
-        detailHistoryList.innerHTML = `
-            <div class="history-item">
-                <div class="history-icon"><i class="fa-solid fa-plus"></i></div>
-                <div class="history-info">
-                    <span class="history-text">Container Created</span>
-                    <span class="history-date">${displayDate}</span>
+  // 3. Echte Historie aus der Datenbank rendern
+        detailHistoryList.innerHTML = '';
+        
+        // Fallback für alte Container, die noch kein History-Array haben
+        const historyData = container.history || [{
+            icon: 'fa-plus',
+            text: 'Container Created',
+            time: displayDate
+        }];
+
+        // Wir drehen das Array um (.slice().reverse()), damit die neueste Aktion immer oben steht
+        historyData.slice().reverse().forEach(entry => {
+            detailHistoryList.innerHTML += `
+                <div class="history-item">
+                    <div class="history-icon"><i class="fa-solid ${entry.icon}"></i></div>
+                    <div class="history-info">
+                        <span class="history-text">${entry.text}</span>
+                        <span class="history-date">${entry.time}</span>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        });
     };
 
     window.closeDetailScreen = function() {
