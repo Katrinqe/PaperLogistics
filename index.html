@@ -320,6 +320,56 @@
                 <button id="btn-confirm-exchange" class="btn-exchange-target active">Confirm</button>
             </div>
         </div>
+        <!-- === SCREEN 10: SHOP SELECTION (SELL WORKFLOW) === -->
+        <div id="shop-select-screen" class="screen hidden">
+            <div class="scan-header">
+                <button class="back-arrow" onclick="closeShopSelectScreen()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2>SELECT SHOP</h2>
+                <div style="width: 30px;"></div>
+            </div>
+            
+            <p style="text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 20px;">
+                Choose destination shop for the selected blocks.
+            </p>
+
+            <div id="sell-shop-list" style="flex: 1; overflow-y: auto; padding-bottom: 100px;">
+                <!-- JS generiert hier die Shop-Liste -->
+            </div>
+            
+            <div class="exchange-bottom-bar">
+                <button class="btn-exchange-back" onclick="closeShopSelectScreen()">Back</button>
+                <button id="btn-shop-select-next" class="btn-exchange-target disabled" disabled>Next</button>
+            </div>
+        </div>
+
+        <!-- === SCREEN 11: SELL REVIEW === -->
+        <div id="sell-review-screen" class="screen hidden">
+            <div class="scan-header">
+                <button class="back-arrow" onclick="closeSellReviewScreen()">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2>REVIEW SALE</h2>
+                <div style="width: 30px;"></div>
+            </div>
+            
+            <div class="review-content">
+                <h3 class="section-label">TO SHOP</h3>
+                <div id="sell-review-shop"></div>
+
+                <h3 class="section-label">FROM</h3>
+                <div id="sell-review-from"></div>
+
+                <h3 class="section-label">WHAT</h3>
+                <div id="sell-review-what"></div>
+            </div>
+            
+            <div class="exchange-bottom-bar">
+                <button class="btn-exchange-back" onclick="closeSellReviewScreen()">Back</button>
+                <button id="btn-confirm-sell" class="btn-exchange-target active">Sell</button>
+            </div>
+        </div>
 <!-- === SCREEN 8: NEW SHOP === -->
         <div id="new-shop-screen" class="screen hidden">
             <div class="scan-header">
