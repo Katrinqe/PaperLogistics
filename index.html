@@ -10,9 +10,11 @@
     <link rel="stylesheet" href="style.css">
     <!-- Externe Icons (FontAwesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Externe Bibliothek für den Kamera-Scanner -->
+ <!-- Externe Bibliothek für den Kamera-Scanner -->
     <script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- NEU: Externe Bibliothek für das Dashboard Diagramm -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- Splash Screen -->
@@ -53,6 +55,7 @@
             </section>
 
             <!-- Dashboard / Graph -->
+ <!-- Dashboard / Graph -->
             <section class="dashboard">
                 <div class="graph-area">
                     <div class="inline-toggles" id="graph-toggles">
@@ -61,7 +64,11 @@
                         <button onclick="moveSlider(1, this)">Week</button>
                         <button onclick="moveSlider(2, this)">Month</button>
                     </div>
-                    <p class="no-data-text">No data</p>
+                    
+                    <!-- Die Zeichenfläche für Chart.js -->
+                    <div class="chart-container" style="position: relative; height: 180px; width: 100%; margin-top: 20px;">
+                        <canvas id="dashboard-sales-chart"></canvas>
+                    </div>
                 </div>
             </section>
         </div>
