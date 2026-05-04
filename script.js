@@ -659,13 +659,13 @@ window.closeNewContainerScreen = function() {
                     ? `<img src="${shop.image}" class="list-avatar">` 
                     : `<div class="list-avatar"><i class="fa-solid fa-store" style="color:#666;"></i></div>`;
 
-                shopItem.innerHTML = `
+       shopItem.innerHTML = `
                     <div style="display: flex; align-items: center; width: 100%;">
                         ${avatarHtml}
                         <div class="card-info">
                             <div class="card-title">${shop.name}</div>
                             <div class="card-detail">Added: ${displayDate}</div>
-                            <div class="card-detail" style="color: #0055ff;">0 Deliveries</div>
+                            <div class="card-detail" style="color: #0055ff;">${shop.deliveries || 0} Deliveries</div>
                         </div>
                     </div>
                 `;
@@ -1921,6 +1921,7 @@ window.closeNewContainerScreen = function() {
             ? `<img src="${shop.image}" class="list-avatar">` 
             : `<div class="list-avatar"><i class="fa-solid fa-store" style="color:#666;"></i></div>`;
 
+// Card rendern (identisch zum Listen-Layout, aber ohne Hover/Klick)
         document.getElementById('shop-detail-card-container').innerHTML = `
             <div class="live-card">
                 <div style="display: flex; align-items: center; width: 100%;">
@@ -1928,7 +1929,7 @@ window.closeNewContainerScreen = function() {
                     <div class="card-info">
                         <div class="card-title">${shop.name}</div>
                         <div class="card-detail">Added: ${displayDate}</div>
-                        <div class="card-detail" style="color: #0055ff;">0 Deliveries</div>
+                        <div class="card-detail" style="color: #0055ff;">${shop.deliveries || 0} Deliveries</div>
                     </div>
                 </div>
             </div>
@@ -2150,7 +2151,7 @@ window.closeNewContainerScreen = function() {
             time: timeString
         });
 
-        // 4. Shop-Historie aktualisieren
+// 4. Shop-Historie aktualisieren
         if (!targetShop.history) targetShop.history = [];
         targetShop.history.push({
             icon: 'fa-box-open',
@@ -2158,6 +2159,10 @@ window.closeNewContainerScreen = function() {
             time: timeString
         });
 
+        // NEU: Deliveries (Lieferungen) für diesen Shop um +1 erhöhen
+        targetShop.deliveries = (targetShop.deliveries || 0) + 1;
+
+        // 5. Globale System-Historie schreiben
         // 5. Globale System-Historie schreiben
         db.globalHistory.push({
             icon: 'fa-handshake',
