@@ -2162,13 +2162,17 @@ window.closeNewContainerScreen = function() {
         // NEU: Deliveries (Lieferungen) für diesen Shop um +1 erhöhen
         targetShop.deliveries = (targetShop.deliveries || 0) + 1;
 
-        // 5. Globale System-Historie schreiben
-        // 5. Globale System-Historie schreiben
+ // 5. Globale System-Historie schreiben (inkl. PDF Payload)
         db.globalHistory.push({
             icon: 'fa-handshake',
             title: 'Sale Completed',
             text: `${blockCount} blocks from ${sourceContainer.name} sold to ${targetShop.name}.`,
-            time: timeString
+            time: timeString,
+            payload: {
+                shop: { ...targetShop }, // Kopie des Shops
+                container: { ...sourceContainer, blocks: null }, // Kopie des Containers (ohne Rest-Blöcke, um Platz zu sparen)
+                blocks: tempExchangeBlocks.map(b => ({ ...b })) // Exakte Kopie der verkauften Blöcke
+            }
         });
 
         // 6. Alles in die Datenbank brennen
@@ -2223,7 +2227,7 @@ window.closeNewContainerScreen = function() {
         document.getElementById('home-screen').classList.remove('hidden');
     };
 
-    function renderGlobalHistory() {
+function renderGlobalHistory() {
         const list = document.getElementById('global-history-list');
         list.innerHTML = '';
         const db = loadDatabase();
@@ -2234,16 +2238,142 @@ window.closeNewContainerScreen = function() {
         }
         
         db.globalHistory.slice().reverse().forEach(entry => {
-            list.innerHTML += `
-                <div class="global-history-entry">
+            const entryDiv = document.createElement('div');
+            entryDiv.className = 'global-history-entry';
+            
+            // Wenn der Eintrag Daten für ein PDF hat (Verkauf), mache ihn anklickbar
+            if (entry.payload) {
+                entryDiv.style.cursor = 'pointer';
+                entryDiv.innerHTML = `
+                    <div class="icon-box"><i class="fa-solid ${entry.icon}"></i></div>
+                    <div class="history-info" style="flex-grow: 1;">
+                        <div style="color:#fff; font-weight:600; font-size:1rem; margin-bottom:4px;">${entry.title}</div>
+                        <div style="color:#aaa; font-size:0.85rem; margin-bottom:4px;">${entry.text}</div>
+                        <div style="color:#666; font-size:0.75rem;">${entry.time}</div>
+                    </div>
+                    <div style="color: #0055ff; padding-right: 10px;"><i class="fa-solid fa-file-pdf fa-xl"></i></div>
+                `;
+                // Klick feuert die neue PDF Funktion ab
+                entryDiv.addEventListener('click', () => generateSalePDF(entry));
+            } else {
+                // Normale Einträge ohne PDF
+                entryDiv.innerHTML = `
                     <div class="icon-box"><i class="fa-solid ${entry.icon}"></i></div>
                     <div class="history-info">
                         <div style="color:#fff; font-weight:600; font-size:1rem; margin-bottom:4px;">${entry.title}</div>
                         <div style="color:#aaa; font-size:0.85rem; margin-bottom:4px;">${entry.text}</div>
                         <div style="color:#666; font-size:0.75rem;">${entry.time}</div>
                     </div>
-                </div>
-            `;
+                `;
+            }
+            list.appendChild(entryDiv);
         });
     }
+
+    // --- SALE PDF GENERATOR ---
+    window.generateSalePDF = function(entry) {
+        showSuccessToast("Lade Dossier..."); // Kurzes Feedback
+        
+        const payload = entry.payload;
+        const randomHex = Math.floor(Math.random() * 16777215).toString(16).toUpperCase().padStart(6, '0');
+        // Doc-ID im Format: SALE-20260504-A1B2C3
+        const docId = `SALE-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${randomHex}`; 
+        
+        // Preis-Aggregation der Blöcke
+        const prices = new Set();
+        payload.blocks.forEach(b => { if (b.price) prices.add(b.price); });
+        const aggregatedPrices = Array.from(prices).join(' / ') || '-';
+
+        // 1. Die Summary Box
+        const summaryBoxHtml = `
+            <div style="border: 2px solid #000; padding: 15px; margin-bottom: 25px; border-radius: 8px;">
+                <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; border-bottom: 1px solid #000; padding-bottom: 5px;">TRANSACTION SUMMARY</h3>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><strong>FROM:</strong> <span>${payload.container.name}</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><strong>TO:</strong> <span>${payload.shop.name}</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><strong>WHAT:</strong> <span>${payload.blocks.length} Block(s)</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><strong>WHEN:</strong> <span>${entry.time}</span></div>
+                <div style="display: flex; justify-content: space-between;"><strong>PRICE TYPE:</strong> <span>${aggregatedPrices}</span></div>
+            </div>
+        `;
+
+        // 2. Shop Card (Custom, da Shops keine normalen Blöcke sind)
+        const shopCardHtml = `
+            <div class="pdf-section-title">BUYER (SHOP)</div>
+            <div class="pdf-card" style="margin-bottom: 25px;">
+                <div class="pdf-card-info" style="width: 100%;">
+                    <div class="pdf-card-title">${payload.shop.name}</div>
+                    <div class="pdf-card-detail">System ID: ${payload.shop.id}</div>
+                    <div class="pdf-card-detail">Registration Date: ${formatPdfDate(payload.shop.date)}</div>
+                </div>
+            </div>
+        `;
+
+        // 3. Container Card (Nutzt deine bestehende Funktion)
+        const containerCardHtml = `
+            <div class="pdf-section-title">ORIGIN (CONTAINER)</div>
+            ${buildPdfCardHtml(payload.container, true, 'hist-c')}
+        `;
+
+        // Seite 1 Zusammensetzen
+        let pdfHtml = `
+            <div class="pdf-page">
+                <div class="pdf-header">
+                    <div>CREATED: ${entry.time}</div>
+                    <div>DOC-ID: ${docId}</div>
+                </div>
+                <div class="pdf-section-title" style="font-size: 1.4rem; border:none; text-align:center; margin-bottom: 20px;">DELIVERY DOSSIER</div>
+                ${summaryBoxHtml}
+                ${shopCardHtml}
+                ${containerCardHtml}
+            </div>
+        `;
+
+        // Seite 2: Die verkauften Blöcke
+        if (payload.blocks && payload.blocks.length > 0) {
+            pdfHtml += `<div class="html2pdf__page-break"></div><div class="pdf-page"><div class="pdf-header"><div>CREATED: ${entry.time}</div><div>DOC-ID: ${docId}</div></div><div class="pdf-section-title">DELIVERED ITEMS IDENTIFICATION</div>`;
+            payload.blocks.forEach((block, index) => {
+                pdfHtml += `
+                    <div class="pdf-block-wrapper">
+                        ${buildPdfCardHtml(block, false, `hist-b${index}`)}
+                    </div>
+                    <div style="margin-bottom: 30px;"></div>
+                `;
+            });
+            pdfHtml += `</div>`;
+        }
+
+        // Ins DOM feuern
+        const stagingArea = document.getElementById('pdf-export-container');
+        stagingArea.innerHTML = pdfHtml;
+
+        // QR Codes aufbauen
+        const qrConfig = getQRConfig(false); 
+        qrConfig.width = 90; qrConfig.height = 90; qrConfig.margin = 0; qrConfig.backgroundOptions = { color: "#ffffff" };
+
+        // QR für den Origin Container
+        qrConfig.data = payload.container.id;
+        new QRCodeStyling(qrConfig).append(document.getElementById('pdf-qr-hist-c'));
+
+        // QRs für die Blöcke (Blau)
+        payload.blocks.forEach((block, index) => {
+            const blockQrConfig = { ...qrConfig, data: block.id, dotsOptions: { color: "#0055ff", type: "square" }, cornersSquareOptions: { color: "#0055ff", type: "square" }, cornersDotOptions: { color: "#0055ff", type: "square" } };
+            new QRCodeStyling(blockQrConfig).append(document.getElementById(`pdf-qr-hist-b${index}`));
+        });
+
+        // 500ms warten für QRs, dann als PDF rendern und laden
+        setTimeout(() => {
+            const opt = {
+                margin:       0, 
+                filename:     `Delivery_${payload.shop.name}_${docId}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true }, 
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['css', 'legacy'], avoid: '.pdf-block-wrapper' } 
+            };
+
+            html2pdf().set(opt).from(stagingArea).save().then(() => {
+                stagingArea.innerHTML = '';
+            });
+        }, 500);
+    };
 });
