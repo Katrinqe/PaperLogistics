@@ -134,17 +134,24 @@ document.addEventListener("DOMContentLoaded", () => {
             salesChartInstance.destroy();
         }
 
-        // Neuen Graphen zeichnen
+   // Neuen Graphen zeichnen
         salesChartInstance = new Chart(ctx, {
-            type: 'bar',
+            type: 'line', // <-- Umstellung auf Linie
             data: {
                 labels: labels,
                 datasets: [{
                     label: 'Blocks Sold',
                     data: dataValues,
-                    backgroundColor: '#0055ff', // Das leuchtende App-Blau
-                    borderRadius: 6,
-                    borderSkipped: false
+                    borderColor: '#0055ff', // Leuchtend blaue Linie
+                    backgroundColor: 'rgba(0, 85, 255, 0.1)', // Subtiler Glow unter der Kurve
+                    borderWidth: 3, // Angenehme Liniendicke
+                    tension: 0.4, // Sorgt für eine extrem weiche, geschwungene Kurve (sehr edel!)
+                    fill: true, // Füllt den Bereich unter der Linie mit der backgroundColor
+                    pointBackgroundColor: '#0055ff', // Blaue Punkte auf den Daten
+                    pointBorderColor: '#111', // Schwarzer Rand um die Punkte für mehr Kontrast
+                    pointBorderWidth: 2,
+                    pointRadius: 4, // Größe der Punkte
+                    pointHoverRadius: 6 // Punkte werden beim Antippen größer
                 }]
             },
             options: {
