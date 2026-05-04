@@ -50,17 +50,141 @@ document.addEventListener("DOMContentLoaded", () => {
             .catch(err => console.error('Service Worker Fehler:', err));
     }
 
-    // Inline Toggle Slider Logic (Day/Week/Month)
+// --- DASHBOARD CHART ENGINE ---
+    let salesChartInstance = null;
+
+    window.updateDashboardChart = function(timeframeIndex) {
+        const db = loadDatabase();
+        // Filtere nur echte Verkäufe (Einträge mit Payload)
+        const sales = (db.globalHistory || []).filter(entry => entry.payload);
+
+        let labels = [];
+        let dataValues = [];
+        const now = new Date();
+
+        // Hilfsfunktion: Zeitstring "DD.MM.YYYY HH:MM" in echtes Datum umwandeln
+        function parseCustomDate(timeStr) {
+            const [datePart] = timeStr.split(' ');
+            const [d, m, y] = datePart.split('.');
+            return new Date(y, m - 1, d);
+        }
+
+        if (timeframeIndex === 0) {
+            // MODUS 'DAY': Letzte 7 Tage anzeigen
+            labels = [...Array(7)].map((_, i) => {
+                const d = new Date(now);
+                d.setDate(d.getDate() - (6 - i));
+                return d.toLocaleDateString('en-US', { weekday: 'short' });
+            });
+            dataValues = Array(7).fill(0);
+            
+            sales.forEach(sale => {
+                const saleDate = parseCustomDate(sale.time);
+                for(let i=0; i<7; i++) {
+                    const d = new Date(now);
+                    d.setDate(d.getDate() - (6 - i));
+                    // Wenn der Verkauf an diesem Tag war, addiere die Block-Anzahl
+                    if (saleDate.getDate() === d.getDate() && saleDate.getMonth() === d.getMonth() && saleDate.getFullYear() === d.getFullYear()) {
+                        dataValues[i] += sale.payload.blocks.length;
+                    }
+                }
+            });
+
+        } else if (timeframeIndex === 1) {
+            // MODUS 'WEEK': Letzte 4 Wochen
+            labels = ['Week -3', 'Week -2', 'Last Wk', 'This Wk'];
+            dataValues = Array(4).fill(0);
+            
+            sales.forEach(sale => {
+                const saleDate = parseCustomDate(sale.time);
+                const diffTime = now - saleDate;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays <= 7) dataValues[3] += sale.payload.blocks.length;
+                else if (diffDays <= 14) dataValues[2] += sale.payload.blocks.length;
+                else if (diffDays <= 21) dataValues[1] += sale.payload.blocks.length;
+                else if (diffDays <= 28) dataValues[0] += sale.payload.blocks.length;
+            });
+
+        } else {
+            // MODUS 'MONTH': Letzte 6 Monate
+            labels = [...Array(6)].map((_, i) => {
+                const d = new Date(now);
+                d.setMonth(d.getMonth() - (5 - i));
+                return d.toLocaleDateString('en-US', { month: 'short' });
+            });
+            dataValues = Array(6).fill(0);
+            
+            sales.forEach(sale => {
+                const saleDate = parseCustomDate(sale.time);
+                for(let i=0; i<6; i++) {
+                    const d = new Date(now);
+                    d.setMonth(d.getMonth() - (5 - i));
+                    if (saleDate.getMonth() === d.getMonth() && saleDate.getFullYear() === d.getFullYear()) {
+                        dataValues[i] += sale.payload.blocks.length;
+                    }
+                }
+            });
+        }
+
+        const ctx = document.getElementById('dashboard-sales-chart').getContext('2d');
+
+        // Alten Graphen zerstören (sonst überlappen sie sich)
+        if (salesChartInstance) {
+            salesChartInstance.destroy();
+        }
+
+        // Neuen Graphen zeichnen
+        salesChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Blocks Sold',
+                    data: dataValues,
+                    backgroundColor: '#0055ff', // Das leuchtende App-Blau
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false } // Keine Legende nötig
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, color: '#888' }, // Nur ganze Blöcke, keine Kommazahlen
+                        grid: { color: 'rgba(255,255,255,0.05)' } // Leichte weiße Hilfslinien
+                    },
+                    x: {
+                        ticks: { color: '#888' },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    };
+
+    // Inline Toggle Slider Logic
     window.moveSlider = function(index, buttonEl) {
-        // Active Klasse aktualisieren
         const buttons = document.querySelectorAll('#graph-toggles button');
         buttons.forEach(btn => btn.classList.remove('active'));
         buttonEl.classList.add('active');
 
-        // Den weißen Hintergrund verschieben (0%, 100%, 200% seiner eigenen Breite)
         const slider = document.getElementById('toggle-slider');
         slider.style.transform = `translateX(${index * 100}%)`;
+
+        // NEU: Diagramm live aktualisieren
+        updateDashboardChart(index);
     };
+
+    // Lädt das Diagramm automatisch beim ersten App-Start
+    setTimeout(() => {
+        if(document.getElementById('dashboard-sales-chart')) updateDashboardChart(0);
+    }, 500);
 
     // Calendar Engine
     function renderCalendar() {
