@@ -55,9 +55,10 @@
             </section>
 
 
-       <!-- Dashboard / Graph -->
+<!-- Dashboard / Graph -->
             <section class="dashboard" style="margin-bottom: 100px;">
-                <div class="live-card" style="padding: 15px; margin: 15px 0;">
+                <!-- HIER IST DER FIX: flex-direction: column zwingt Dropdown und Diagramm untereinander -->
+                <div class="live-card" style="padding: 15px; margin: 15px 0; display: flex; flex-direction: column; align-items: stretch;">
                     
                     <!-- Absolut kugelsichere Ausrichtung nach rechts -->
                     <div style="display: flex; justify-content: flex-end; width: 100%; margin-bottom: 15px;">
@@ -74,8 +75,8 @@
                         </div>
                     </div>
                     
-                    <!-- Das Diagramm -->
-                    <div style="position: relative; height: 140px; width: 100%;">
+                    <!-- Das Diagramm (Höhe auf 160px erhöht, damit die Text-Achse unten nicht abschneidet) -->
+                    <div style="position: relative; height: 160px; width: 100%;">
                         <canvas id="dashboard-sales-chart"></canvas>
                     </div>
                     
