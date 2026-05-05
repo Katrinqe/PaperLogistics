@@ -234,15 +234,13 @@ header {
     min-height: 0;
 }
 
+/* --- DASHBOARD LAYOUT FIX --- */
 .graph-area {
-    flex-grow: 1;
-    background-color: #111111;
-    border-radius: 12px;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: inset 0 1px 3px rgba(255,255,255,0.05);
+    display: flex !important;
+    flex-direction: column !important; /* Zwingt alles strikt untereinander */
+    width: 100%;
+    box-sizing: border-box;
+    overflow: visible !important; /* WICHTIG: Erlaubt dem Dropdown, über den Rand der grauen Box zu klappen */
 }
 
 /* Inline Toggles (Der Slider im Diagramm) */
@@ -1453,19 +1451,29 @@ header {
     flex-shrink: 0;
 }
 
-/* --- Dashboard Chart Dropdown --- */
 .chart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-bottom: 15px !important;
 }
+
 
 .chart-title {
     color: #888;
     font-size: 0.85rem;
     font-weight: 600;
     letter-spacing: 1.5px;
+    white-space: nowrap !important; /* Verbietet dem Text das vertikale Umbrechen */
+    flex-shrink: 0;
+}
+
+.chart-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    position: relative;
 }
 
 .custom-dropdown {
