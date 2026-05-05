@@ -53,6 +53,9 @@ document.addEventListener("DOMContentLoaded", () => {
 // --- DASHBOARD CHART ENGINE ---
     let salesChartInstance = null;
 
+// --- DASHBOARD CHART ENGINE ---
+    let salesChartInstance = null;
+
     window.updateDashboardChart = function(timeframeIndex) {
         const db = loadDatabase();
         // Filtere nur echte Verkäufe (Einträge mit Payload)
@@ -70,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (timeframeIndex === 0) {
-            // MODUS 'DAY': Letzte 7 Tage anzeigen
+            // MODUS 'DAY': Letzte 7 Tage
             labels = [...Array(7)].map((_, i) => {
                 const d = new Date(now);
                 d.setDate(d.getDate() - (6 - i));
@@ -83,7 +86,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 for(let i=0; i<7; i++) {
                     const d = new Date(now);
                     d.setDate(d.getDate() - (6 - i));
-                    // Wenn der Verkauf an diesem Tag war, addiere die Block-Anzahl
                     if (saleDate.getDate() === d.getDate() && saleDate.getMonth() === d.getMonth() && saleDate.getFullYear() === d.getFullYear()) {
                         dataValues[i] += sale.payload.blocks.length;
                     }
@@ -107,73 +109,104 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
         } else {
-            // MODUS 'MONTH': Letzte 6 Monate
-            labels = [...Array(6)].map((_, i) => {
-                const d = new Date(now);
-                d.setMonth(d.getMonth() - (5 - i));
-                return d.toLocaleDateString('en-US', { month: 'short' });
-            });
-            dataValues = Array(6).fill(0);
-            
-            sales.forEach(sale => {
-                const saleDate = parseCustomDate(sale.time);
-                for(let i=0; i<6; i++) {
+            // MODUS 'ALL': Dynamische Skalierung ab dem allerersten Verkauf
+            if (sales.length === 0) {
+                // Fallback: 6 Monate, wenn noch nichts verkauft wurde
+                labels = [...Array(6)].map((_, i) => {
                     const d = new Date(now);
                     d.setMonth(d.getMonth() - (5 - i));
-                    if (saleDate.getMonth() === d.getMonth() && saleDate.getFullYear() === d.getFullYear()) {
-                        dataValues[i] += sale.payload.blocks.length;
+                    return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                });
+                dataValues = Array(6).fill(0);
+            } else {
+                // Ersten Verkauf finden (Die Datenbank speichert chronologisch)
+                const earliestSaleDate = parseCustomDate(sales[0].time);
+                
+                // Berechne die Spanne in Monaten zwischen dem ersten Verkauf und heute
+                let monthsDiff = (now.getFullYear() - earliestSaleDate.getFullYear()) * 12;
+                monthsDiff -= earliestSaleDate.getMonth();
+                monthsDiff += now.getMonth();
+                monthsDiff = Math.max(monthsDiff + 1, 6); // Zeige der Optik halber immer mindestens 6 Monate
+
+                labels = [...Array(monthsDiff)].map((_, i) => {
+                    const d = new Date(now);
+                    d.setMonth(d.getMonth() - (monthsDiff - 1 - i));
+                    return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                });
+                dataValues = Array(monthsDiff).fill(0);
+                
+                sales.forEach(sale => {
+                    const saleDate = parseCustomDate(sale.time);
+                    for(let i=0; i<monthsDiff; i++) {
+                        const d = new Date(now);
+                        d.setMonth(d.getMonth() - (monthsDiff - 1 - i));
+                        if (saleDate.getMonth() === d.getMonth() && saleDate.getFullYear() === d.getFullYear()) {
+                            dataValues[i] += sale.payload.blocks.length;
+                        }
                     }
-                }
-            });
+                });
+            }
         }
 
         const ctx = document.getElementById('dashboard-sales-chart').getContext('2d');
+        if (salesChartInstance) salesChartInstance.destroy();
 
-        // Alten Graphen zerstören (sonst überlappen sie sich)
-        if (salesChartInstance) {
-            salesChartInstance.destroy();
-        }
-
-   // Neuen Graphen zeichnen
         salesChartInstance = new Chart(ctx, {
-            type: 'line', // <-- Umstellung auf Linie
+            type: 'line',
             data: {
                 labels: labels,
                 datasets: [{
                     label: 'Blocks Sold',
                     data: dataValues,
-                    borderColor: '#0055ff', // Leuchtend blaue Linie
-                    backgroundColor: 'rgba(0, 85, 255, 0.1)', // Subtiler Glow unter der Kurve
-                    borderWidth: 3, // Angenehme Liniendicke
-                    tension: 0.4, // Sorgt für eine extrem weiche, geschwungene Kurve (sehr edel!)
-                    fill: true, // Füllt den Bereich unter der Linie mit der backgroundColor
-                    pointBackgroundColor: '#0055ff', // Blaue Punkte auf den Daten
-                    pointBorderColor: '#111', // Schwarzer Rand um die Punkte für mehr Kontrast
+                    borderColor: '#0055ff',
+                    backgroundColor: 'rgba(0, 85, 255, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#0055ff',
+                    pointBorderColor: '#111',
                     pointBorderWidth: 2,
-                    pointRadius: 4, // Größe der Punkte
-                    pointHoverRadius: 6 // Punkte werden beim Antippen größer
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false } // Keine Legende nötig
-                },
+                plugins: { legend: { display: false } },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1, color: '#888' }, // Nur ganze Blöcke, keine Kommazahlen
-                        grid: { color: 'rgba(255,255,255,0.05)' } // Leichte weiße Hilfslinien
-                    },
-                    x: {
-                        ticks: { color: '#888' },
-                        grid: { display: false }
-                    }
+                    y: { beginAtZero: true, ticks: { stepSize: 1, color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { ticks: { color: '#888' }, grid: { display: false } }
                 }
             }
         });
     };
+
+    // --- Custom Dropdown Logic ---
+    window.toggleChartDropdown = function(e) {
+        e.stopPropagation(); // Verhindert, dass der Klick ans Dokument weitergeleitet wird
+        document.getElementById('dropdown-options-list').classList.toggle('hidden');
+    };
+
+    window.selectChartTimeframe = function(index, text, e) {
+        e.stopPropagation();
+        document.getElementById('dropdown-current-value').textContent = text;
+        document.getElementById('dropdown-options-list').classList.add('hidden');
+        updateDashboardChart(index); // Chart neu berechnen und zeichnen
+    };
+
+    // Schließt das Dropdown, wenn man irgendwo anders auf den Bildschirm tippt
+    document.addEventListener('click', () => {
+        const dropdown = document.getElementById('dropdown-options-list');
+        if (dropdown && !dropdown.classList.contains('hidden')) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    // Lädt das Diagramm automatisch beim ersten App-Start
+    setTimeout(() => {
+        if(document.getElementById('dashboard-sales-chart')) updateDashboardChart(0);
+    }, 500);
 
     // Inline Toggle Slider Logic
     window.moveSlider = function(index, buttonEl) {
