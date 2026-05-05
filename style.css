@@ -234,63 +234,7 @@ header {
     min-height: 0;
 }
 
-/* --- DASHBOARD LAYOUT FIX --- */
-.graph-area {
-    display: flex !important;
-    flex-direction: column !important; /* Zwingt alles strikt untereinander */
-    width: 100%;
-    box-sizing: border-box;
-    overflow: visible !important; /* WICHTIG: Erlaubt dem Dropdown, über den Rand der grauen Box zu klappen */
-}
 
-/* Inline Toggles (Der Slider im Diagramm) */
-.inline-toggles {
-    position: absolute;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #000000;
-    border-radius: 20px;
-    display: flex;
-    padding: 3px;
-    z-index: 10;
-}
-
-.inline-toggles button {
-    background: transparent;
-    border: none;
-    color: #888888;
-    font-size: 0.75rem;
-    font-weight: 500;
-    padding: 5px 16px;
-    cursor: pointer;
-    z-index: 2;
-    position: relative;
-    transition: color 0.3s ease;
-}
-
-.inline-toggles button.active {
-    color: #000000;
-}
-
-/* Der weiße Hintergrund-Slider */
-.toggle-slider {
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    height: calc(100% - 6px);
-    width: calc(33.33% - 2px);
-    background-color: #ffffff;
-    border-radius: 16px;
-    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-    z-index: 1;
-}
-
-.no-data-text {
-    color: #444444;
-    font-size: 1.1rem;
-    letter-spacing: 1px;
-}
 
 /* Action Grid */
 .action-grid {
@@ -1451,30 +1395,7 @@ header {
     flex-shrink: 0;
 }
 
-.chart-header {
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    width: 100% !important;
-    margin-bottom: 15px !important;
-}
 
-
-.chart-title {
-    color: #888;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    white-space: nowrap !important; /* Verbietet dem Text das vertikale Umbrechen */
-    flex-shrink: 0;
-}
-
-.chart-container {
-    width: 100% !important;
-    max-width: 100% !important;
-    position: relative;
-}
 
 .custom-dropdown {
     position: relative;
