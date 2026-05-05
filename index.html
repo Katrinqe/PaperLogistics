@@ -54,15 +54,14 @@
                 </div>
             </section>
 
-            <!-- Dashboard / Graph -->
- <!-- Dashboard / Graph -->
+   <!-- Dashboard / Graph -->
             <section class="dashboard">
-                <div class="graph-area">
-                  <div class="chart-header">
-                        <span class="chart-title">SALES OVERVIEW</span>
-                        
-                        <!-- Custom Dropdown -->
-                        <div class="custom-dropdown" id="chart-dropdown">
+                <!-- Alles sitzt jetzt in einer Live-Card mit extra Abstand nach unten -->
+                <div class="live-card" style="padding: 15px; margin-top: 15px; margin-bottom: 90px;">
+                    
+                    <!-- Header nur noch mit rechtsbündigem Dropdown -->
+                    <div class="chart-header" style="justify-content: flex-end !important; margin-bottom: 10px !important;">
+                        <div class="custom-dropdown" id="chart-dropdown" style="z-index: 10;">
                             <div class="dropdown-selected" onclick="toggleChartDropdown(event)">
                                 <span id="dropdown-current-value">Day</span>
                                 <i class="fa-solid fa-chevron-down" style="font-size: 0.8rem; color: #666;"></i>
@@ -75,8 +74,8 @@
                         </div>
                     </div>
                     
-                    <!-- Die Zeichenfläche für Chart.js -->
-                    <div class="chart-container" style="position: relative; height: 180px; width: 100%; margin-top: 20px;">
+                    <!-- Höhe von 180px auf 130px reduziert für eine edlere, kompaktere Optik -->
+                    <div class="chart-container" style="position: relative; height: 130px; width: 100%;">
                         <canvas id="dashboard-sales-chart"></canvas>
                     </div>
                 </div>
