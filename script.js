@@ -55,97 +55,39 @@ document.addEventListener("DOMContentLoaded", () => {
 // --- DASHBOARD CHART ENGINE ---
     let salesChartInstance = null;
 
-    window.updateDashboardChart = function(timeframeIndex) {
+    window.updateDashboardChart = function() {
         const db = loadDatabase();
         // Filtere nur echte Verkäufe (Einträge mit Payload)
         const sales = (db.globalHistory || []).filter(entry => entry.payload);
 
-        let labels = [];
-        let dataValues = [];
         const now = new Date();
 
-        // Hilfsfunktion: Zeitstring "DD.MM.YYYY HH:MM" in echtes Datum umwandeln
+        // Hilfsfunktion: Zeitstring in echtes Datum umwandeln
         function parseCustomDate(timeStr) {
             const [datePart] = timeStr.split(' ');
             const [d, m, y] = datePart.split('.');
             return new Date(y, m - 1, d);
         }
 
-        if (timeframeIndex === 0) {
-            // MODUS 'DAY': Letzte 7 Tage
-            labels = [...Array(7)].map((_, i) => {
+        // Standard-Ansicht: Letzte 7 Tage
+        let labels = [...Array(7)].map((_, i) => {
+            const d = new Date(now);
+            d.setDate(d.getDate() - (6 - i));
+            return d.toLocaleDateString('en-US', { weekday: 'short' });
+        });
+        
+        let dataValues = Array(7).fill(0);
+        
+        sales.forEach(sale => {
+            const saleDate = parseCustomDate(sale.time);
+            for(let i=0; i<7; i++) {
                 const d = new Date(now);
                 d.setDate(d.getDate() - (6 - i));
-                return d.toLocaleDateString('en-US', { weekday: 'short' });
-            });
-            dataValues = Array(7).fill(0);
-            
-            sales.forEach(sale => {
-                const saleDate = parseCustomDate(sale.time);
-                for(let i=0; i<7; i++) {
-                    const d = new Date(now);
-                    d.setDate(d.getDate() - (6 - i));
-                    if (saleDate.getDate() === d.getDate() && saleDate.getMonth() === d.getMonth() && saleDate.getFullYear() === d.getFullYear()) {
-                        dataValues[i] += sale.payload.blocks.length;
-                    }
+                if (saleDate.getDate() === d.getDate() && saleDate.getMonth() === d.getMonth() && saleDate.getFullYear() === d.getFullYear()) {
+                    dataValues[i] += sale.payload.blocks.length;
                 }
-            });
-
-        } else if (timeframeIndex === 1) {
-            // MODUS 'WEEK': Letzte 4 Wochen
-            labels = ['Week -3', 'Week -2', 'Last Wk', 'This Wk'];
-            dataValues = Array(4).fill(0);
-            
-            sales.forEach(sale => {
-                const saleDate = parseCustomDate(sale.time);
-                const diffTime = now - saleDate;
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                
-                if (diffDays <= 7) dataValues[3] += sale.payload.blocks.length;
-                else if (diffDays <= 14) dataValues[2] += sale.payload.blocks.length;
-                else if (diffDays <= 21) dataValues[1] += sale.payload.blocks.length;
-                else if (diffDays <= 28) dataValues[0] += sale.payload.blocks.length;
-            });
-
-        } else {
-            // MODUS 'ALL': Dynamische Skalierung ab dem allerersten Verkauf
-            if (sales.length === 0) {
-                // Fallback: 6 Monate, wenn noch nichts verkauft wurde
-                labels = [...Array(6)].map((_, i) => {
-                    const d = new Date(now);
-                    d.setMonth(d.getMonth() - (5 - i));
-                    return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-                });
-                dataValues = Array(6).fill(0);
-            } else {
-                // Ersten Verkauf finden (Die Datenbank speichert chronologisch)
-                const earliestSaleDate = parseCustomDate(sales[0].time);
-                
-                // Berechne die Spanne in Monaten zwischen dem ersten Verkauf und heute
-                let monthsDiff = (now.getFullYear() - earliestSaleDate.getFullYear()) * 12;
-                monthsDiff -= earliestSaleDate.getMonth();
-                monthsDiff += now.getMonth();
-                monthsDiff = Math.max(monthsDiff + 1, 6); // Zeige der Optik halber immer mindestens 6 Monate
-
-                labels = [...Array(monthsDiff)].map((_, i) => {
-                    const d = new Date(now);
-                    d.setMonth(d.getMonth() - (monthsDiff - 1 - i));
-                    return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-                });
-                dataValues = Array(monthsDiff).fill(0);
-                
-                sales.forEach(sale => {
-                    const saleDate = parseCustomDate(sale.time);
-                    for(let i=0; i<monthsDiff; i++) {
-                        const d = new Date(now);
-                        d.setMonth(d.getMonth() - (monthsDiff - 1 - i));
-                        if (saleDate.getMonth() === d.getMonth() && saleDate.getFullYear() === d.getFullYear()) {
-                            dataValues[i] += sale.payload.blocks.length;
-                        }
-                    }
-                });
             }
-        }
+        });
 
         const ctx = document.getElementById('dashboard-sales-chart').getContext('2d');
         if (salesChartInstance) salesChartInstance.destroy();
@@ -173,6 +115,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
+                layout: {
+                    padding: { bottom: 5 } // Verhindert, dass die Schrift unten abgeschnitten wird
+                },
                 scales: {
                     y: { beginAtZero: true, ticks: { stepSize: 1, color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
                     x: { ticks: { color: '#888' }, grid: { display: false } }
@@ -180,6 +125,11 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     };
+
+    // Lädt das Diagramm automatisch beim ersten App-Start
+    setTimeout(() => {
+        if(document.getElementById('dashboard-sales-chart')) updateDashboardChart();
+    }, 500);
 
     // --- Custom Dropdown Logic ---
     window.toggleChartDropdown = function(e) {
