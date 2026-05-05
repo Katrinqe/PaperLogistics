@@ -50,8 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .catch(err => console.error('Service Worker Fehler:', err));
     }
 
-// --- DASHBOARD CHART ENGINE ---
-    let salesChartInstance = null;
+
 
 // --- DASHBOARD CHART ENGINE ---
     let salesChartInstance = null;
