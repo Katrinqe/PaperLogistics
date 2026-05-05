@@ -50,112 +50,130 @@ document.addEventListener("DOMContentLoaded", () => {
             .catch(err => console.error('Service Worker Fehler:', err));
     }
 
-
-
 // --- DASHBOARD CHART ENGINE ---
     let salesChartInstance = null;
 
-    window.updateDashboardChart = function() {
+    window.updateDashboardChart = function(timeframeIndex) {
         const db = loadDatabase();
         // Filtere nur echte Verkäufe (Einträge mit Payload)
         const sales = (db.globalHistory || []).filter(entry => entry.payload);
 
+        let labels = [];
+        let dataValues = [];
         const now = new Date();
 
-        // Hilfsfunktion: Zeitstring in echtes Datum umwandeln
+        // Hilfsfunktion: Zeitstring "DD.MM.YYYY HH:MM" in echtes Datum umwandeln
         function parseCustomDate(timeStr) {
             const [datePart] = timeStr.split(' ');
             const [d, m, y] = datePart.split('.');
             return new Date(y, m - 1, d);
         }
 
-        // Standard-Ansicht: Letzte 7 Tage
-        let labels = [...Array(7)].map((_, i) => {
-            const d = new Date(now);
-            d.setDate(d.getDate() - (6 - i));
-            return d.toLocaleDateString('en-US', { weekday: 'short' });
-        });
-        
-        let dataValues = Array(7).fill(0);
-        
-        sales.forEach(sale => {
-            const saleDate = parseCustomDate(sale.time);
-            for(let i=0; i<7; i++) {
+        if (timeframeIndex === 0) {
+            // MODUS 'DAY': Letzte 7 Tage anzeigen
+            labels = [...Array(7)].map((_, i) => {
                 const d = new Date(now);
                 d.setDate(d.getDate() - (6 - i));
-                if (saleDate.getDate() === d.getDate() && saleDate.getMonth() === d.getMonth() && saleDate.getFullYear() === d.getFullYear()) {
-                    dataValues[i] += sale.payload.blocks.length;
+                return d.toLocaleDateString('en-US', { weekday: 'short' });
+            });
+            dataValues = Array(7).fill(0);
+            
+            sales.forEach(sale => {
+                const saleDate = parseCustomDate(sale.time);
+                for(let i=0; i<7; i++) {
+                    const d = new Date(now);
+                    d.setDate(d.getDate() - (6 - i));
+                    // Wenn der Verkauf an diesem Tag war, addiere die Block-Anzahl
+                    if (saleDate.getDate() === d.getDate() && saleDate.getMonth() === d.getMonth() && saleDate.getFullYear() === d.getFullYear()) {
+                        dataValues[i] += sale.payload.blocks.length;
+                    }
                 }
-            }
-        });
+            });
+
+        } else if (timeframeIndex === 1) {
+            // MODUS 'WEEK': Letzte 4 Wochen
+            labels = ['Week -3', 'Week -2', 'Last Wk', 'This Wk'];
+            dataValues = Array(4).fill(0);
+            
+            sales.forEach(sale => {
+                const saleDate = parseCustomDate(sale.time);
+                const diffTime = now - saleDate;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays <= 7) dataValues[3] += sale.payload.blocks.length;
+                else if (diffDays <= 14) dataValues[2] += sale.payload.blocks.length;
+                else if (diffDays <= 21) dataValues[1] += sale.payload.blocks.length;
+                else if (diffDays <= 28) dataValues[0] += sale.payload.blocks.length;
+            });
+
+        } else {
+            // MODUS 'MONTH': Letzte 6 Monate
+            labels = [...Array(6)].map((_, i) => {
+                const d = new Date(now);
+                d.setMonth(d.getMonth() - (5 - i));
+                return d.toLocaleDateString('en-US', { month: 'short' });
+            });
+            dataValues = Array(6).fill(0);
+            
+            sales.forEach(sale => {
+                const saleDate = parseCustomDate(sale.time);
+                for(let i=0; i<6; i++) {
+                    const d = new Date(now);
+                    d.setMonth(d.getMonth() - (5 - i));
+                    if (saleDate.getMonth() === d.getMonth() && saleDate.getFullYear() === d.getFullYear()) {
+                        dataValues[i] += sale.payload.blocks.length;
+                    }
+                }
+            });
+        }
 
         const ctx = document.getElementById('dashboard-sales-chart').getContext('2d');
-        if (salesChartInstance) salesChartInstance.destroy();
 
+        // Alten Graphen zerstören (sonst überlappen sie sich)
+        if (salesChartInstance) {
+            salesChartInstance.destroy();
+        }
+
+   // Neuen Graphen zeichnen
         salesChartInstance = new Chart(ctx, {
-            type: 'line',
+            type: 'line', // <-- Umstellung auf Linie
             data: {
                 labels: labels,
                 datasets: [{
                     label: 'Blocks Sold',
                     data: dataValues,
-                    borderColor: '#0055ff',
-                    backgroundColor: 'rgba(0, 85, 255, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointBackgroundColor: '#0055ff',
-                    pointBorderColor: '#111',
+                    borderColor: '#0055ff', // Leuchtend blaue Linie
+                    backgroundColor: 'rgba(0, 85, 255, 0.1)', // Subtiler Glow unter der Kurve
+                    borderWidth: 3, // Angenehme Liniendicke
+                    tension: 0.4, // Sorgt für eine extrem weiche, geschwungene Kurve (sehr edel!)
+                    fill: true, // Füllt den Bereich unter der Linie mit der backgroundColor
+                    pointBackgroundColor: '#0055ff', // Blaue Punkte auf den Daten
+                    pointBorderColor: '#111', // Schwarzer Rand um die Punkte für mehr Kontrast
                     pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    pointRadius: 4, // Größe der Punkte
+                    pointHoverRadius: 6 // Punkte werden beim Antippen größer
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                layout: {
-                    padding: { bottom: 5 } // Verhindert, dass die Schrift unten abgeschnitten wird
+                plugins: {
+                    legend: { display: false } // Keine Legende nötig
                 },
                 scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 1, color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    x: { ticks: { color: '#888' }, grid: { display: false } }
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, color: '#888' }, // Nur ganze Blöcke, keine Kommazahlen
+                        grid: { color: 'rgba(255,255,255,0.05)' } // Leichte weiße Hilfslinien
+                    },
+                    x: {
+                        ticks: { color: '#888' },
+                        grid: { display: false }
+                    }
                 }
             }
         });
     };
-
-    // Lädt das Diagramm automatisch beim ersten App-Start
-    setTimeout(() => {
-        if(document.getElementById('dashboard-sales-chart')) updateDashboardChart();
-    }, 500);
-
-    // --- Custom Dropdown Logic ---
-    window.toggleChartDropdown = function(e) {
-        e.stopPropagation(); // Verhindert, dass der Klick ans Dokument weitergeleitet wird
-        document.getElementById('dropdown-options-list').classList.toggle('hidden');
-    };
-
-    window.selectChartTimeframe = function(index, text, e) {
-        e.stopPropagation();
-        document.getElementById('dropdown-current-value').textContent = text;
-        document.getElementById('dropdown-options-list').classList.add('hidden');
-        updateDashboardChart(index); // Chart neu berechnen und zeichnen
-    };
-
-    // Schließt das Dropdown, wenn man irgendwo anders auf den Bildschirm tippt
-    document.addEventListener('click', () => {
-        const dropdown = document.getElementById('dropdown-options-list');
-        if (dropdown && !dropdown.classList.contains('hidden')) {
-            dropdown.classList.add('hidden');
-        }
-    });
-
-    // Lädt das Diagramm automatisch beim ersten App-Start
-    setTimeout(() => {
-        if(document.getElementById('dashboard-sales-chart')) updateDashboardChart(0);
-    }, 500);
 
     // Inline Toggle Slider Logic
     window.moveSlider = function(index, buttonEl) {
