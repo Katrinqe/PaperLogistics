@@ -234,7 +234,65 @@ header {
     min-height: 0;
 }
 
+.graph-area {
+    flex-grow: 1;
+    background-color: #111111;
+    border-radius: 12px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 1px 3px rgba(255,255,255,0.05);
+}
 
+/* Inline Toggles (Der Slider im Diagramm) */
+.inline-toggles {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #000000;
+    border-radius: 20px;
+    display: flex;
+    padding: 3px;
+    z-index: 10;
+}
+
+.inline-toggles button {
+    background: transparent;
+    border: none;
+    color: #888888;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 5px 16px;
+    cursor: pointer;
+    z-index: 2;
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+.inline-toggles button.active {
+    color: #000000;
+}
+
+/* Der weiße Hintergrund-Slider */
+.toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    height: calc(100% - 6px);
+    width: calc(33.33% - 2px);
+    background-color: #ffffff;
+    border-radius: 16px;
+    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    z-index: 1;
+}
+
+.no-data-text {
+    color: #444444;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+}
 
 /* Action Grid */
 .action-grid {
@@ -1393,53 +1451,4 @@ header {
     color: #00C851; 
     font-size: 1.2rem; 
     flex-shrink: 0;
-}
-
-
-
-.custom-dropdown {
-    position: relative;
-    background-color: #111;
-    border: 1px solid #333;
-    border-radius: 8px;
-    width: 100px;
-    cursor: pointer;
-    user-select: none;
-}
-
-.dropdown-selected {
-    padding: 8px 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: #fff;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.dropdown-options {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    width: 100%;
-    background-color: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 8px;
-    margin-top: 5px;
-    z-index: 100;
-    overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.8);
-}
-
-.dropdown-option {
-    padding: 10px 12px;
-    color: #aaa;
-    font-size: 0.9rem;
-    transition: background 0.2s, color 0.2s;
-    text-align: left;
-}
-
-.dropdown-option:hover {
-    background-color: #333;
-    color: #0055ff;
 }
