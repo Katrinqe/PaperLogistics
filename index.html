@@ -54,13 +54,13 @@
                 </div>
             </section>
 
-   <!-- Dashboard / Graph -->
-            <section class="dashboard">
-                <!-- Alles sitzt jetzt in einer Live-Card mit extra Abstand nach unten -->
-                <div class="live-card" style="padding: 15px; margin-top: 15px; margin-bottom: 90px;">
+
+       <!-- Dashboard / Graph -->
+            <section class="dashboard" style="margin-bottom: 100px;">
+                <div class="live-card" style="padding: 15px; margin: 15px 0;">
                     
-                    <!-- Header nur noch mit rechtsbündigem Dropdown -->
-                    <div class="chart-header" style="justify-content: flex-end !important; margin-bottom: 10px !important;">
+                    <!-- Absolut kugelsichere Ausrichtung nach rechts -->
+                    <div style="display: flex; justify-content: flex-end; width: 100%; margin-bottom: 15px;">
                         <div class="custom-dropdown" id="chart-dropdown" style="z-index: 10;">
                             <div class="dropdown-selected" onclick="toggleChartDropdown(event)">
                                 <span id="dropdown-current-value">Day</span>
@@ -74,10 +74,11 @@
                         </div>
                     </div>
                     
-                    <!-- Höhe von 180px auf 130px reduziert für eine edlere, kompaktere Optik -->
-                    <div class="chart-container" style="position: relative; height: 130px; width: 100%;">
+                    <!-- Das Diagramm -->
+                    <div style="position: relative; height: 140px; width: 100%;">
                         <canvas id="dashboard-sales-chart"></canvas>
                     </div>
+                    
                 </div>
             </section>
         </div>
