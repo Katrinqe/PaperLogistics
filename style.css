@@ -165,7 +165,7 @@ header {
     flex-direction: column;
     gap: 15px;
     margin-bottom: 20px;
-    min-height: 0; /* Verhindert das Überlaufen auf kleinen Displays */
+    
 }
 
 /* Calendar */
@@ -231,7 +231,7 @@ header {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
+   
 }
 
 .graph-area {
@@ -339,13 +339,20 @@ header {
     color: #ff4444;
 }
 
-/* --- Screen Management & Animation --- */
 .screen {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
     animation: fadeIn 0.3s ease-in-out;
     height: 100%;
+    
+    /* NEU: Erlaubt das Scrollen innerhalb des Screens! */
+    overflow-y: auto; 
+    /* NEU: Versteckt die Scrollbar für einen cleanen Look (optional) */
+    scrollbar-width: none; 
+}
+.screen::-webkit-scrollbar {
+    display: none;
 }
 
 @keyframes fadeIn {
@@ -1450,5 +1457,13 @@ header {
     justify-content: center;
     color: #00C851; 
     font-size: 1.2rem; 
+    flex-shrink: 0;
+}
+
+/* --- ANTI-QUETSCH-SCHUTZ FÜR KLEINE DISPLAYS --- */
+header, 
+.middle-layout, 
+.dashboard,
+.action-grid {
     flex-shrink: 0;
 }
